@@ -86,18 +86,22 @@ ${chatText}
 
     return memoryText;
   } catch (error) {
-    console.log(error);
+    console.log("[LONG MEMORY ERROR]", error);
 
     return "なし";
   }
 }
 
 // =========================
-// 長期記憶整理
+// 長期記憶正規化
 // =========================
 
-function cleanLongMemory() {
+function normalizeLongMemory() {
   try {
+    // =========================
+    // file存在確認
+    // =========================
+
     if (!fs.existsSync("memory/long_memory.txt")) {
       return;
     }
@@ -108,16 +112,7 @@ function cleanLongMemory() {
 
     const lines = fs
       .readFileSync("memory/long_memory.txt", "utf-8")
-      .split("\n")
-
-      // 空行削除
-      .filter(Boolean)
-
-      // 「- 」のみ残す
-      .filter((line) => line.startsWith("- "))
-
-      // 長すぎる行削除
-      .filter((line) => line.length < 100);
+      .split("\n");
 
     // =========================
     // 禁止ワード
@@ -129,33 +124,68 @@ function cleanLongMemory() {
       "保存不要",
       "話者",
       "記憶整理",
-      "長期記憶",
     ];
 
-    const filteredLines = lines.filter((line) => {
+    // =========================
+    // 正規化
+    // =========================
+
+    const cleaned = [];
+
+    const seen = new Set();
+
+    for (let line of lines) {
+      line = line.trim();
+
+      // 空行
+      if (!line) {
+        continue;
+      }
+
+      // 「- 」以外除外
+      if (!line.startsWith("- ")) {
+        continue;
+      }
+
+      // 長すぎる行除外
+      if (line.length > 100) {
+        continue;
+      }
+
+      // 禁止ワード
+      let skip = false;
+
       for (const word of bannedWords) {
         if (line.includes(word)) {
-          return false;
+          skip = true;
+
+          break;
         }
       }
 
-      return true;
-    });
+      if (skip) {
+        continue;
+      }
+
+      // 重複
+      if (seen.has(line)) {
+        continue;
+      }
+
+      // 保存
+      seen.add(line);
+
+      cleaned.push(line);
+    }
 
     // =========================
-    // 重複削除
+    // 最新100件だけ
     // =========================
 
-    const uniqueLines = [...new Set(filteredLines)];
+    const trimmed = cleaned.slice(-100);
 
     // =========================
-    // 最新100件
-    // =========================
-
-    const trimmed = uniqueLines.slice(-100);
-
-    // =========================
-    // 保存
+    // 書き戻し
     // =========================
 
     fs.writeFileSync(
@@ -164,9 +194,9 @@ function cleanLongMemory() {
       trimmed.join("\n") + "\n",
     );
 
-    console.log("[MEMORY CLEANED]");
+    console.log("[MEMORY NORMALIZED]");
   } catch (error) {
-    console.log("[MEMORY CLEAN ERROR]", error);
+    console.log("[MEMORY NORMALIZE ERROR]", error);
   }
 }
 
@@ -176,54 +206,15 @@ function cleanLongMemory() {
 
 async function saveLongMemory(memoryText) {
   // =========================
-  // 保存不要
+  // 空だけ除外
   // =========================
 
-  if (memoryText === "なし" || memoryText.length === 0) {
+  if (memoryText.length === 0) {
     return;
   }
 
   // =========================
-  // 禁止ワード
-  // =========================
-
-  const bannedWords = [
-    "具体的な長期記憶情報はない",
-    "雑談",
-    "保存不要",
-    "話者",
-    "記憶整理",
-    "長期記憶",
-  ];
-
-  for (const word of bannedWords) {
-    if (memoryText.includes(word)) {
-      console.log("[MEMORY SKIP]", memoryText);
-
-      return;
-    }
-  }
-
-  // =========================
-  // 現在memory
-  // =========================
-
-  let currentMemory = "";
-
-  if (fs.existsSync("memory/long_memory.txt")) {
-    currentMemory = fs.readFileSync("memory/long_memory.txt", "utf-8");
-  }
-
-  // =========================
-  // 重複防止
-  // =========================
-
-  if (currentMemory.includes(memoryText)) {
-    return;
-  }
-
-  // =========================
-  // 追記
+  // append
   // =========================
 
   fs.appendFileSync(
@@ -233,10 +224,10 @@ async function saveLongMemory(memoryText) {
   );
 
   // =========================
-  // 整理
+  // 正規化
   // =========================
 
-  cleanLongMemory();
+  normalizeLongMemory();
 }
 
 // =========================
