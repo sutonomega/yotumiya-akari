@@ -5,6 +5,7 @@ node_modules/
 memory/chat_history.txt
 memory/long_memory.txt
 memory/summaries.txt
+memory/post_candidates.txt
 
 memory/mood.json
 memory/scheduler.json
