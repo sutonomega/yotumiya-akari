@@ -1,8 +1,10 @@
 require("dotenv").config();
 
-const { Client, GatewayIntentBits, Events } = require("discord.js");
+const { Client, GatewayIntentBits } = require("discord.js");
 
 const chat = require("./index");
+
+const log = require("./logger");
 
 const client = new Client({
   intents: [
@@ -12,31 +14,33 @@ const client = new Client({
   ],
 });
 
-client.once(Events.ClientReady, (readyClient) => {
-  console.log(`起動: ${readyClient.user.tag}`);
+client.once("ready", () => {
+  log("SYSTEM", `起動: ${client.user.tag}`);
 });
 
-client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot) return;
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) {
+    return;
+  }
+
+  log("DISCORD", `${message.author.username}: ${message.content}`);
 
   try {
-    console.log(`${message.author.username}: ${message.content}`);
+    // 入力中表示
+    await message.channel.sendTyping();
 
-    // 考え中メッセージ
-    const thinkingMessage = await message.reply("...");
-
-    // AI返答
     const reply = await chat(message.content);
 
-    // メッセージ更新
-    await thinkingMessage.edit(reply);
+    // replyへ戻す
+    await message.reply(reply);
   } catch (error) {
-    console.error(error);
+    console.log(error);
 
-    await message.reply("エラーが発生しました");
+    log("ERROR", error.stack);
+
+    // エラー通知復活
+    await message.reply("エラーが発生しました。");
   }
 });
 
-client.login(
-  process.env.DISCORD_TOKEN
-);
+client.login(process.env.DISCORD_TOKEN);

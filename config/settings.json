@@ -1,0 +1,6 @@
+{
+  "energyDecrease": 3,
+  "energyRecoveryPerHour": 5,
+  "maxEnergy": 100,
+  "recentChatLines": 10
+}
