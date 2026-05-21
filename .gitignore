@@ -6,6 +6,10 @@ memory/chat_history.txt
 memory/long_memory.txt
 memory/summaries.txt
 
+memory/mood.json
+memory/scheduler.json
+memory/talk_stats.json
+
 logs/
 
 *.log
