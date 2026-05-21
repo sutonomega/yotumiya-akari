@@ -32,16 +32,28 @@ async function chat(userMessage) {
   const aiProfile = fs.readFileSync("memory/ai_profile.txt", "utf-8");
 
   // =========================
-  // summary prompt
-  // =========================
-
-  const summaryBasePrompt = fs.readFileSync("prompts/summary.txt", "utf-8");
-
-  // =========================
   // 感情状態読み込み
   // =========================
 
   const moodData = JSON.parse(fs.readFileSync("memory/mood.json", "utf-8"));
+
+  // =========================
+  // 会話統計読み込み
+  // =========================
+
+  const talkStats = JSON.parse(
+    fs.readFileSync("memory/talk_stats.json", "utf-8"),
+  );
+
+  const today = now.toISOString().split("T")[0];
+
+  if (talkStats.lastTalkDate !== today) {
+    talkStats.todayCount = 0;
+
+    talkStats.lastTalkDate = today;
+  }
+
+  talkStats.todayCount += 1;
 
   // =========================
   // 時間経過による回復
@@ -63,8 +75,8 @@ async function chat(userMessage) {
     moodData.energy = settings.maxEnergy;
   }
 
-  if (moodData.energy < 0) {
-    moodData.energy = 0;
+  if (moodData.energy < 20) {
+    moodData.energy = 20;
   }
 
   // =========================
@@ -72,6 +84,18 @@ async function chat(userMessage) {
   // =========================
 
   const hour = now.getHours();
+
+  let timePeriod = "";
+
+  if (hour >= 5 && hour < 11) {
+    timePeriod = "朝";
+  } else if (hour < 17) {
+    timePeriod = "昼";
+  } else if (hour < 23) {
+    timePeriod = "夜";
+  } else {
+    timePeriod = "深夜";
+  }
 
   if (hour >= 0 && hour <= 4) {
     moodData.atmosphere = "深夜の静かな空気";
@@ -99,11 +123,7 @@ async function chat(userMessage) {
   // 長期記憶
   // =========================
 
-  let longMemory = "";
-
-  if (fs.existsSync("memory/long_memory.txt")) {
-    longMemory = fs.readFileSync("memory/long_memory.txt", "utf-8");
-  }
+  const longMemory = "";
 
   // =========================
   // 会話履歴
@@ -132,14 +152,17 @@ ${aiProfile}
 【ガルパチのプロフィール】
 ${profile}
 
-【長期記憶】
-${longMemory}
-
 【最近の会話】
 ${chatHistory}
 
 【現在日時】
 ${currentTime}
+
+【現在の時間帯】
+${timePeriod}
+
+【今日の会話回数】
+${talkStats.todayCount}回
 
 【宵月 灯の現在状態】
 - 感情状態:
@@ -152,8 +175,23 @@ ${moodData.energy}/100
 ${moodData.atmosphere}
 
 重要：
-【宵月 灯の現在状態】に記載の現在の感情状態、体力、雰囲気は、
-過去の会話履歴より優先してください。
+あなたは
+「宵月 灯」です。
+
+ユーザーは
+「ガルパチ」です。
+
+アシスタントのような
+説明口調は禁止。
+
+自然な雑談をしてください。
+
+質問攻めは禁止。
+
+短く自然に話してください。
+
+現在の時間帯を
+正しく反映してください。
 `;
 
   // =========================
@@ -170,7 +208,7 @@ ${moodData.atmosphere}
     },
 
     body: JSON.stringify({
-      model: "qwen2.5:1.5b",
+      model: "qwen2.5:3b",
 
       stream: false,
 
@@ -210,63 +248,16 @@ ${moodData.atmosphere}
   }
 
   // =========================
-  // 要約AI
-  // =========================
-
-  const summaryPrompt = `
-${summaryBasePrompt}
-
-返答:
-${aiMessage}
-`;
-
-  log("INFO", "要約AI送信");
-
-  const summaryResponse = await fetch("http://127.0.0.1:11434/api/chat", {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    body: JSON.stringify({
-      model: "qwen2.5:1.5b",
-
-      stream: false,
-
-      think: false,
-
-      messages: [
-        {
-          role: "system",
-          content: "あなたは会話要約AIです。",
-        },
-        {
-          role: "user",
-          content: summaryPrompt,
-        },
-      ],
-    }),
-  });
-
-  log("INFO", "要約AI受信");
-
-  const summaryData = await summaryResponse.json();
-
-  const shortAiMessage = summaryData.message.content;
-
-  // =========================
   // ログ保存
   // =========================
 
-  const historyLog = `
-【日時】
-${currentTime}
+  const shortAiMessage = aiMessage;
 
-【ガルパチの発言】
+  const historyLog = `
+ガルパチ:
 ${userMessage}
 
-【宵月 灯の発言要約】
+宵月 灯:
 ${shortAiMessage}
 
 `;
@@ -286,12 +277,14 @@ ${shortAiMessage}
   );
 
   // =========================
-  // 長期記憶更新
+  // 会話統計保存
   // =========================
 
-  const summarizeMemory = require("./summarize");
+  fs.writeFileSync(
+    "memory/talk_stats.json",
 
-  summarizeMemory();
+    JSON.stringify(talkStats, null, 2),
+  );
 
   log("INFO", "chat終了");
 
