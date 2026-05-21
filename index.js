@@ -146,7 +146,7 @@ async function chat(userMessage) {
   const systemPrompt = `
 ${system}
 
-【宵月 灯のプロフィール】
+【夜宮 灯のプロフィール】
 ${aiProfile}
 
 【ガルパチのプロフィール】
@@ -164,7 +164,7 @@ ${timePeriod}
 【今日の会話回数】
 ${talkStats.todayCount}回
 
-【宵月 灯の現在状態】
+【夜宮 灯の現在状態】
 - 感情状態:
 ${moodData.mood}
 
@@ -176,7 +176,7 @@ ${moodData.atmosphere}
 
 重要：
 あなたは
-「宵月 灯」です。
+「夜宮 灯」です。
 
 ユーザーは
 「ガルパチ」です。
@@ -257,7 +257,7 @@ ${moodData.atmosphere}
 ガルパチ:
 ${userMessage}
 
-宵月 灯:
+夜宮 灯:
 ${shortAiMessage}
 
 `;
