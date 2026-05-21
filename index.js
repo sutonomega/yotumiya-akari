@@ -2,6 +2,8 @@ const fs = require("fs");
 
 const log = require("./logger");
 
+const processLongMemory = require("./summarize");
+
 async function chat(userMessage) {
   log("INFO", "chat開始");
 
@@ -123,7 +125,11 @@ async function chat(userMessage) {
   // 長期記憶
   // =========================
 
-  const longMemory = "";
+  let longMemory = "";
+
+  if (fs.existsSync("memory/long_memory.txt")) {
+    longMemory = fs.readFileSync("memory/long_memory.txt", "utf-8");
+  }
 
   // =========================
   // 会話履歴
@@ -151,6 +157,9 @@ ${aiProfile}
 
 【ガルパチのプロフィール】
 ${profile}
+
+【長期記憶】
+${longMemory}
 
 【最近の会話】
 ${chatHistory}
@@ -263,6 +272,20 @@ ${shortAiMessage}
 `;
 
   fs.appendFileSync("memory/chat_history.txt", historyLog);
+
+  // =========================
+  // 長期記憶処理
+  // =========================
+
+  try {
+    console.log("LONG MEMORY START");
+
+    await processLongMemory(historyLog);
+
+    console.log("LONG MEMORY END");
+  } catch (error) {
+    console.log("LONG MEMORY ERROR", error);
+  }
 
   // =========================
   // mood保存
