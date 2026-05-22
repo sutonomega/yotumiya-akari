@@ -194,7 +194,7 @@ ${longMemory}
           stream: false,
 
           options: {
-            temperature: 0.6,
+            temperature: 0.5,
           },
         }),
       },
