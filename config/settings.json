@@ -2,5 +2,20 @@
   "energyDecrease": 1,
   "energyRecoveryPerHour": 15,
   "maxEnergy": 100,
-  "recentChatLines": 30
+  "recentChatLines": 30,
+
+  "selfTalkIntervalHours": 6,
+  "replyMaxLength": 80,
+  "memoryMaxLines": 100,
+
+  "userName": "ガルパチ",
+  "aiName": "夜宮 灯",
+
+  "defaultMessage": "静かな時間だね。",
+
+  "channelId": "1506657409622610083",
+
+  "chatModel": "qwen2.5:3b",
+  "memoryModel": "qwen2.5:3b",
+  "summaryModel": "qwen2.5:3b"
 }

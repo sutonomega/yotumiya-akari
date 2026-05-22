@@ -1,336 +1,99 @@
 const fs = require("fs");
 
-const cron = require("node-cron");
-
 const log = require("./logger");
 
-const CHANNEL_ID = "1506657409622610083";
+const getCurrentState = require("./functions/getCurrentState");
 
 // =========================
-// Discord用自発発言
+// scheduler判定
 // =========================
 
-async function generateSelfTalk() {
-  try {
-    const now = new Date();
+async function checkScheduler() {
+  log("SYSTEM", "定期チェック");
 
-    const hour = now.getHours();
+  // =========================
+  // 現在状態取得
+  // =========================
 
-    let timeText = "夜";
+  const {
+    settings,
 
-    // =========================
-    // 時間帯判定
-    // =========================
+    now,
 
-    if (hour >= 5 && hour < 11) {
-      timeText = "朝";
-    } else if (hour >= 11 && hour < 18) {
-      timeText = "昼";
-    } else if (hour >= 18 && hour < 22) {
-      timeText = "夕方";
-    } else {
-      timeText = "夜";
-    }
+    hour,
 
-    // =========================
-    // prompt
-    // =========================
+    minute,
 
-    const prompt = `
-あなたは
-夜宮 灯（よるみや あかり）。
+    moodData,
 
-現在は
-「${timeText}」です。
+    schedulerData,
 
-Discordで、
-ガルパチに向けて
-自然な一言を話してください。
+    diffHours,
+  } = getCurrentState();
 
-条件:
-- 日本語のみ
-- 英語禁止
-- ハッシュタグ禁止
-- 1文だけ
-- 短め
-- 落ち着いた雰囲気
-- 自然な会話
-- 少しだけ人間らしい
-- 質問はたまにだけ
-- 詩的すぎない
-- ガルパチへの呼びかけOK
-- 思考過程を出力しない
+  // =========================
+  // 最終自発発言時間
+  // =========================
 
-例:
-- おはよう。今日は静かな朝だね。
-- 少し涼しいね。
-- 調子はどう？
-- 今日はゆっくり過ごせそう。
-`;
+  let autoDiffHours = 999;
 
-    const response = await fetch(
-      "http://localhost:11434/api/generate",
+  if (schedulerData.lastAutoMessage) {
+    const lastAuto = new Date(schedulerData.lastAutoMessage);
 
-      {
-        method: "POST",
+    autoDiffHours = (now - lastAuto) / (1000 * 60 * 60);
+  }
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+  // =========================
+  // 自発発言判定
+  // =========================
 
-        body: JSON.stringify({
-          model: "qwen2.5:3b",
+  if (diffHours >= 1 && autoDiffHours >= settings.selfTalkIntervalHours) {
+    log("SYSTEM", "自発発言要求");
 
-          prompt,
+    schedulerData.lastAutoMessage = now.toISOString();
 
-          stream: false,
-        }),
-      },
+    fs.writeFileSync(
+      "memory/scheduler.json",
+
+      JSON.stringify(schedulerData, null, 2),
     );
 
-    const data = await response.json();
-
-    let message = data.response.trim();
-
-    // =========================
-    // think除去
-    // =========================
-
-    message = message.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
-    return message;
-  } catch (error) {
-    log("ERROR", error.toString());
-
-    return "静かな時間だね。";
+    return {
+      mode: "self_talk",
+    };
   }
-}
 
-// =========================
-// SNS用投稿文
-// =========================
+  // =========================
+  // 定時つぶやき判定
+  // =========================
 
-async function generatePostMessage() {
-  try {
-    const now = new Date();
+  const postHours = [7, 12, 18, 23];
 
-    const hour = now.getHours();
+  const currentSlot = `${hour}:${minute}`;
 
-    let timeText = "夜";
+  if (postHours.includes(hour) && minute === 0) {
+    if (schedulerData.lastPostTime !== currentSlot) {
+      log("SYSTEM", "定時つぶやき要求");
 
-    // =========================
-    // 時間帯判定
-    // =========================
+      schedulerData.lastPostTime = currentSlot;
 
-    if (hour >= 5 && hour < 11) {
-      timeText = "朝";
-    } else if (hour >= 11 && hour < 18) {
-      timeText = "昼";
-    } else if (hour >= 18 && hour < 22) {
-      timeText = "夕方";
-    } else {
-      timeText = "夜";
-    }
+      fs.writeFileSync(
+        "memory/scheduler.json",
 
-    // =========================
-    // prompt
-    // =========================
+        JSON.stringify(schedulerData, null, 2),
+      );
 
-    const prompt = `
-あなたは
-夜宮 灯（よるみや あかり）。
-
-現在は
-「${timeText}」です。
-
-その時間帯に合った、
-静かな日常の独り言を
-1つ生成してください。
-
-条件:
-- 日本語のみ
-- 英語禁止
-- ハッシュタグ禁止
-- 1〜2文
-- 40文字前後
-- 落ち着いた雰囲気
-- 自然な独り言
-- 日常の空気感
-- 詩的すぎない
-- 質問しない
-- 説明しない
-- ガルパチへの呼びかけ禁止
-- 思考過程を出力しない
-`;
-
-    const response = await fetch(
-      "http://localhost:11434/api/generate",
-
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          model: "qwen2.5:3b",
-
-          prompt,
-
-          stream: false,
-        }),
-      },
-    );
-
-    const data = await response.json();
-
-    let message = data.response.trim();
-
-    // =========================
-    // think除去
-    // =========================
-
-    message = message.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-
-    return message;
-  } catch (error) {
-    log("ERROR", error.toString());
-
-    return "静かな時間です。";
-  }
-}
-
-// =========================
-// 投稿候補保存
-// =========================
-
-function savePostCandidate(message) {
-  const timestamp = new Date().toLocaleString("ja-JP");
-
-  fs.appendFileSync(
-    "memory/post_candidates.txt",
-
-    `[${timestamp}]\n${message}\n\n`,
-  );
-}
-
-// =========================
-// Discord送信
-// =========================
-
-async function sendAutoMessage(client, message) {
-  const channel = await client.channels.fetch(CHANNEL_ID);
-
-  await channel.send(message);
-}
-
-// =========================
-// Scheduler開始
-// =========================
-
-function startScheduler(client) {
-  // ========================================
-  // 会話停止時の自発発言
-  // ========================================
-
-  cron.schedule(
-    "* * * * *",
-
-    async () => {
-      log("SYSTEM", "定期チェック");
-
-      // =========================
-      // mood読み込み
-      // =========================
-
-      const moodData = JSON.parse(fs.readFileSync("memory/mood.json", "utf-8"));
-
-      // =========================
-      // scheduler状態読み込み
-      // =========================
-
-      let schedulerData = {
-        lastAutoMessage: null,
+      return {
+        mode: "post",
       };
+    }
+  }
 
-      if (fs.existsSync("memory/scheduler.json")) {
-        schedulerData = JSON.parse(
-          fs.readFileSync("memory/scheduler.json", "utf-8"),
-        );
-      }
+  // =========================
+  // 発言なし
+  // =========================
 
-      // =========================
-      // 最終会話時間
-      // =========================
-
-      const now = new Date();
-
-      const lastTalkTime = new Date(moodData.lastTalkTime);
-
-      const diffMs = now - lastTalkTime;
-
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      // =========================
-      // 最終自発発言時間
-      // =========================
-
-      let autoDiffHours = 999;
-
-      if (schedulerData.lastAutoMessage) {
-        const lastAuto = new Date(schedulerData.lastAutoMessage);
-
-        autoDiffHours = (now - lastAuto) / (1000 * 60 * 60);
-      }
-
-      // =========================
-      // 自発発言条件
-      // =========================
-
-      if (diffHours >= 1 && autoDiffHours >= 6) {
-        log("SYSTEM", "自発発言送信");
-
-        const autoMessage = await generateSelfTalk();
-
-        await sendAutoMessage(client, autoMessage);
-
-        // =========================
-        // 自発発言時間保存
-        // =========================
-
-        schedulerData.lastAutoMessage = now.toISOString();
-
-        fs.writeFileSync(
-          "memory/scheduler.json",
-
-          JSON.stringify(schedulerData, null, 2),
-        );
-      }
-    },
-  );
-
-  // ========================================
-  // 定時つぶやき
-  // ========================================
-
-  cron.schedule(
-    "0 7,12,18,23 * * *",
-
-    async () => {
-      log("SYSTEM", "定時つぶやき");
-
-      const autoMessage = await generatePostMessage();
-
-      // Discord送信
-
-      await sendAutoMessage(client, autoMessage);
-
-      // 投稿候補保存
-
-      savePostCandidate(autoMessage);
-    },
-  );
+  return null;
 }
 
-module.exports = startScheduler;
+module.exports = checkScheduler;

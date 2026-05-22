@@ -1,6 +1,12 @@
 const fs = require("fs");
 
 // =========================
+// settings読み込み
+// =========================
+
+const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+
+// =========================
 // 長期記憶生成
 // =========================
 
@@ -66,7 +72,7 @@ ${chatText}
       },
 
       body: JSON.stringify({
-        model: "qwen2.5:3b",
+        model: settings.memoryModel,
 
         prompt,
 
