@@ -84,7 +84,3 @@ functions/
 
 .env や memory フォルダ内の個人データは
 GitHubへアップロードしないでください。
-
-# yotumiya-akari
-
-長期記憶・自発発言・定時つぶやきを持つ人格AIシステム
