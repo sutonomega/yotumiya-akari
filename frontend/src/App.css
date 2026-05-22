@@ -1,0 +1,283 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Noto Sans JP", sans-serif;
+}
+
+.app {
+  position: relative;
+
+  width: 100vw;
+  height: 100vh;
+
+  background: black;
+
+  overflow: hidden;
+}
+
+.background {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  display: block;
+}
+
+/* =========================
+   時計
+========================= */
+
+.clock-container {
+  position: absolute;
+
+  top: 40px;
+  left: 40px;
+
+  color: white;
+
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.clock-date {
+  font-size: 18px;
+
+  opacity: 0.7;
+
+  margin-bottom: 4px;
+}
+
+.clock-time {
+  font-size: 56px;
+
+  font-weight: 200;
+
+  letter-spacing: 2px;
+}
+
+/* =========================
+   字幕
+========================= */
+
+.subtitle-container {
+  position: absolute;
+
+  left: 50%;
+  bottom: 40px;
+
+  transform: translateX(-50%);
+
+  width: 70%;
+
+  padding: 20px 28px;
+
+  border-radius: 20px;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  backdrop-filter: blur(10px);
+
+  color: white;
+
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+
+  animation: subtitleFadeIn 1.2s ease;
+}
+
+.subtitle-name {
+  font-size: 18px;
+
+  opacity: 0.7;
+
+  margin-bottom: 8px;
+}
+
+.subtitle-text {
+  max-height: 180px;
+
+  overflow-y: auto;
+
+  padding-right: 8px;
+
+  font-size: 32px;
+
+  line-height: 1.6;
+}
+
+.subtitle-text::-webkit-scrollbar {
+  display: none;
+}
+
+/* =========================
+   thinking
+========================= */
+
+.thinking {
+  opacity: 0.7;
+}
+
+/* =========================
+   typing
+========================= */
+
+.typing-dot {
+  display: inline-block;
+
+  margin-left: 4px;
+
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* =========================
+   コメント履歴
+========================= */
+
+.comment-list {
+  position: absolute;
+
+  top: 40px;
+  right: 40px;
+
+  width: 320px;
+
+  max-height: 70vh;
+
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  padding-right: 4px;
+}
+
+.comment-list::-webkit-scrollbar {
+  display: none;
+}
+
+.comment-item {
+  padding: 14px 18px;
+
+  border-radius: 16px;
+
+  background: rgba(0, 0, 0, 0.4);
+
+  backdrop-filter: blur(10px);
+
+  color: white;
+
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
+}
+
+.comment-user {
+  font-size: 14px;
+
+  opacity: 0.7;
+
+  margin-bottom: 6px;
+}
+
+.comment-text {
+  font-size: 18px;
+
+  line-height: 1.5;
+}
+
+/* =========================
+   コメント入力
+========================= */
+
+.comment-input-container {
+  position: absolute;
+
+  right: 40px;
+  bottom: 40px;
+
+  width: 320px;
+}
+
+.comment-input {
+  width: 100%;
+
+  padding: 16px 20px;
+
+  border: none;
+
+  border-radius: 16px;
+
+  outline: none;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  backdrop-filter: blur(10px);
+
+  color: white;
+
+  font-size: 18px;
+
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.comment-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* =========================
+   アニメーション
+========================= */
+
+@keyframes subtitleFadeIn {
+  from {
+    opacity: 0;
+
+    transform: translateX(-50%) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.akari-character {
+  position: absolute;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  height: 90vh;
+
+  object-fit: contain;
+
+  pointer-events: none;
+}
