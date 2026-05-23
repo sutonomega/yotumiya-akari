@@ -2,13 +2,6 @@ const fs = require("fs");
 
 const path = require("path");
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json"),
-    "utf-8",
-  ),
-);
-
 // =========================
 // 類似記憶判定
 // =========================
@@ -55,7 +48,7 @@ function isSimilarMemory(line, existingLines) {
 // 長期記憶生成
 // =========================
 
-async function generateLongMemory(summaryText) {
+async function generateLongMemory(settings, summaryText) {
   try {
     const promptTemplate = fs.readFileSync(
       path.join(__dirname, "..", "prompts", "memory_summary.txt"),
@@ -108,7 +101,7 @@ async function generateLongMemory(summaryText) {
 // 長期記憶正規化
 // =========================
 
-function normalizeLongMemory() {
+function normalizeLongMemory(settings) {
   try {
     // =========================
     // file存在確認
@@ -249,7 +242,7 @@ function normalizeLongMemory() {
 // 保存
 // =========================
 
-async function saveLongMemory(memoryText) {
+async function saveLongMemory(settings, memoryText) {
   const normalized = memoryText.replace(/^- /, "").trim();
 
   // =========================
@@ -274,7 +267,7 @@ async function saveLongMemory(memoryText) {
   // 正規化
   // =========================
 
-  normalizeLongMemory();
+  normalizeLongMemory(settings);
 }
 
 module.exports = {

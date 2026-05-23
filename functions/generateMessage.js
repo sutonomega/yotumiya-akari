@@ -3,35 +3,10 @@ const fs = require("fs");
 const path = require("path");
 
 // =========================
-// settings読み込み
-// =========================
-
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json"),
-    "utf-8",
-  ),
-);
-
-// =========================
-// 例文読み込み
-// =========================
-
-const goodExamples = fs.readFileSync(
-  path.join(process.cwd(), settings.memoryDir, "feedback", "good_examples.txt"),
-  "utf-8",
-);
-
-const badExamples = fs.readFileSync(
-  path.join(process.cwd(), settings.memoryDir, "feedback", "bad_examples.txt"),
-  "utf-8",
-);
-
-// =========================
 // chat_history parse
 // =========================
 
-function parseHistory(historyText) {
+function parseHistory(settings, historyText) {
   const lines = historyText.split("\n");
 
   const messages = [];
@@ -47,11 +22,11 @@ function parseHistory(historyText) {
     }
 
     // assistant
-    else if (line.startsWith("夜宮 灯:")) {
+    else if (line.startsWith(`${settings.aiName}:`)) {
       messages.push({
         role: "assistant",
 
-        content: line.replace("夜宮 灯:", "").trim(),
+        content: line.replace(`${settings.aiName}:`, "").trim(),
       });
     }
   }
@@ -64,11 +39,37 @@ function parseHistory(historyText) {
 // =========================
 
 async function generateMessage({
+  settings,
+
   mode = "reply",
 
   userMessage = "",
 }) {
   try {
+    // =========================
+    // 例文読み込み
+    // =========================
+
+    const goodExamples = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        settings.memoryDir,
+        "feedback",
+        "good_examples.txt",
+      ),
+      "utf-8",
+    );
+
+    const badExamples = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        settings.memoryDir,
+        "feedback",
+        "bad_examples.txt",
+      ),
+      "utf-8",
+    );
+
     // =========================
     // profile読み込み
     // =========================
@@ -112,7 +113,7 @@ async function generateMessage({
     // history parse
     // =========================
 
-    const historyMessages = parseHistory(recentHistory);
+    const historyMessages = parseHistory(settings, recentHistory);
 
     // =========================
     // mode別指示
@@ -158,7 +159,7 @@ async function generateMessage({
     const systemPrompt = `
 ${conversationRules}
 
-【夜宮 灯プロフィール】
+【${settings.aiName}プロフィール】
 ${aiProfile}
 
 【${settings.userName}プロフィール】

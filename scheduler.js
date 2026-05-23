@@ -10,7 +10,7 @@ const getCurrentState = require("./functions/getCurrentState");
 // scheduler判定
 // =========================
 
-async function checkScheduler() {
+async function checkScheduler(settings) {
   log("SYSTEM", "定期チェック");
 
   // =========================

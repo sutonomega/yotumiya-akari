@@ -4,17 +4,11 @@ const fs = require("fs");
 
 const path = require("path");
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json", "utf-8"),
-  ),
-);
-
 // =========================
 // 履歴解析
 // =========================
 
-function parseHistory() {
+function parseHistory(settings) {
   try {
     // =========================
     // file存在確認

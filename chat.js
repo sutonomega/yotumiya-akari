@@ -11,18 +11,12 @@ const speak = require("./functions/speak");
 const log = require("./logger");
 
 // =========================
-// settings読み込み
-// =========================
-
-const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
-);
-
-// =========================
 // chat
 // =========================
 
 async function chat({
+  settings,
+
   mode = "reply",
 
   userMessage = "",
@@ -37,6 +31,8 @@ async function chat({
     log("INFO", "メッセージ生成開始");
 
     const message = await generateMessage({
+      settings,
+
       mode,
 
       userMessage,

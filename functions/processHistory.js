@@ -56,7 +56,7 @@ async function processHistory({
 
     console.log("SUMMARY START");
 
-    const summary = await generateSummary(historyLog);
+    const summary = await generateSummary(settings, historyLog);
 
     console.log("[SUMMARY RESULT]", summary);
 
@@ -68,7 +68,7 @@ async function processHistory({
 
     console.log("LONG MEMORY START");
 
-    const memory = await generateLongMemory(summary);
+    const memory = await generateLongMemory(settings, summary);
 
     console.log("[LONG MEMORY RESULT]", memory);
 
@@ -76,7 +76,7 @@ async function processHistory({
     // 保存
     // =========================
 
-    await saveLongMemory(memory);
+    await saveLongMemory(settings, memory);
 
     console.log("LONG MEMORY END");
 
@@ -84,7 +84,7 @@ async function processHistory({
     // chat_history圧縮
     // =========================
 
-    await compressHistory();
+    await compressHistory(settings);
   } catch (error) {
     console.log("PROCESS HISTORY ERROR", error);
 

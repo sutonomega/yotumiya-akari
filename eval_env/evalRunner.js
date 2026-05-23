@@ -107,6 +107,8 @@ async function runEval() {
     // =========================
 
     const aiMessage = await generateMessage({
+      settings,
+
       mode: "reply",
 
       userMessage,

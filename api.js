@@ -44,6 +44,8 @@ app.post(
       console.log("USER:", message);
 
       const reply = await chat({
+        settings,
+
         mode: "reply",
 
         userMessage: message,

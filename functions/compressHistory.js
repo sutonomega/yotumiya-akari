@@ -2,20 +2,13 @@ const fs = require("fs");
 
 const path = require("path");
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json"),
-    "utf-8",
-  ),
-);
-
 const generateSummary = require("./summary");
 
 // =========================
 // chat_history圧縮
 // =========================
 
-async function compressHistory() {
+async function compressHistory(settings) {
   try {
     // =========================
     // file確認

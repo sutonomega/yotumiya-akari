@@ -53,7 +53,7 @@ client.once(
     setInterval(
       async () => {
         try {
-          const event = await checkScheduler();
+          const event = await checkScheduler(settings);
 
           if (!event) {
             return;
@@ -64,6 +64,8 @@ client.once(
           // =========================
 
           const aiMessage = await chat({
+            settings,
+
             mode: event.mode,
           });
 
@@ -116,6 +118,8 @@ client.on(
       // =========================
 
       const aiMessage = await chat({
+        settings,
+
         mode: "reply",
 
         userMessage: message.content,

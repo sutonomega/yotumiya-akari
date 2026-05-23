@@ -2,18 +2,11 @@ const fs = require("fs");
 
 const path = require("path");
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json"),
-    "utf-8",
-  ),
-);
-
 // =========================
 // summary生成
 // =========================
 
-async function generateSummary(chatText) {
+async function generateSummary(settings, chatText) {
   try {
     const promptTemplate = fs.readFileSync(
       path.join(__dirname, "..", "prompts", "summary.txt"),
