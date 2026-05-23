@@ -1,5 +1,14 @@
 const fs = require("fs");
 
+const path = require("path");
+
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json"),
+    "utf-8",
+  ),
+);
+
 const generateSummary = require("./summary");
 
 // =========================
@@ -12,7 +21,11 @@ async function compressHistory() {
     // file確認
     // =========================
 
-    if (!fs.existsSync("memory/chat_history.txt")) {
+    if (
+      !fs.existsSync(
+        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+      )
+    ) {
       return;
     }
 
@@ -21,7 +34,10 @@ async function compressHistory() {
     // =========================
 
     const lines = fs
-      .readFileSync("memory/chat_history.txt", "utf-8")
+      .readFileSync(
+        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+        "utf-8",
+      )
       .split("\n");
 
     // =========================
@@ -57,7 +73,11 @@ async function compressHistory() {
     // =========================
 
     fs.appendFileSync(
-      "memory/memory_summary_history.txt",
+      path.join(
+        process.cwd(),
+        settings.memoryDir,
+        "memory_summary_history.txt",
+      ),
 
       summary + "\n",
     );
@@ -67,7 +87,7 @@ async function compressHistory() {
     // =========================
 
     fs.writeFileSync(
-      "memory/chat_history.txt",
+      path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
 
       remainLines.join("\n"),
     );

@@ -1,12 +1,19 @@
 const fs = require("fs");
 
+const path = require("path");
+
 const loadJson = require("./loadJson");
 
 // =========================
 // settings読み込み
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json"),
+    "utf-8",
+  ),
+);
 
 // =========================
 // 時間帯取得
@@ -50,7 +57,7 @@ function getCurrentState() {
   // =========================
 
   const moodData = loadJson(
-    "memory/mood.json",
+    path.join(process.cwd(), settings.memoryDir, "mood.json"),
 
     {
       mood: "落ち着いている",
@@ -68,7 +75,7 @@ function getCurrentState() {
   // =========================
 
   const schedulerData = loadJson(
-    "memory/scheduler.json",
+    path.join(process.cwd(), settings.memoryDir, "scheduler.json"),
 
     {
       lastAutoMessage: null,
@@ -82,7 +89,7 @@ function getCurrentState() {
   // =========================
 
   const talkStats = loadJson(
-    "memory/talk_stats.json",
+    path.join(settings.memoryDir, "talk_stats.json"),
 
     {
       todayCount: 0,

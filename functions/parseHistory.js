@@ -2,7 +2,13 @@ console.log("PROCESS HISTORY START");
 
 const fs = require("fs");
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const path = require("path");
+
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json", "utf-8"),
+  ),
+);
 
 // =========================
 // 履歴解析
@@ -14,7 +20,11 @@ function parseHistory() {
     // file存在確認
     // =========================
 
-    if (!fs.existsSync("memory/chat_history.txt")) {
+    if (
+      !fs.existsSync(
+        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+      )
+    ) {
       return "";
     }
 
@@ -23,7 +33,10 @@ function parseHistory() {
     // =========================
 
     const lines = fs
-      .readFileSync("memory/chat_history.txt", "utf-8")
+      .readFileSync(
+        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+        "utf-8",
+      )
       .split("\n");
 
     // =========================

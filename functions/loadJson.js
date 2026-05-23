@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // json読み込み
 // =========================

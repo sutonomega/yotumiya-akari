@@ -1,22 +1,29 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // settings読み込み
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json"),
+    "utf-8",
+  ),
+);
 
 // =========================
 // 例文読み込み
 // =========================
 
 const goodExamples = fs.readFileSync(
-  "memory/feedback/good_examples.txt",
+  path.join(process.cwd(), settings.memoryDir, "feedback", "good_examples.txt"),
   "utf-8",
 );
 
 const badExamples = fs.readFileSync(
-  "memory/feedback/bad_examples.txt",
+  path.join(process.cwd(), settings.memoryDir, "feedback", "bad_examples.txt"),
   "utf-8",
 );
 
@@ -66,18 +73,30 @@ async function generateMessage({
     // profile読み込み
     // =========================
 
-    const aiProfile = fs.readFileSync("memory/ai_profile.txt", "utf-8");
-
-    const userProfile = fs.readFileSync("memory/user_profile.txt", "utf-8");
-
-    const conversationRules = fs.readFileSync(
-      "memory/conversation_rules.txt",
+    const aiProfile = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "ai_profile.txt"),
       "utf-8",
     );
 
-    const longMemory = fs.readFileSync("memory/long_memory.txt", "utf-8");
+    const userProfile = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "user_profile.txt"),
+      "utf-8",
+    );
 
-    const chatHistory = fs.readFileSync("memory/chat_history.txt", "utf-8");
+    const conversationRules = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "conversation_rules.txt"),
+      "utf-8",
+    );
+
+    const longMemory = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+      "utf-8",
+    );
+
+    const chatHistory = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+      "utf-8",
+    );
 
     // =========================
     // 最新履歴

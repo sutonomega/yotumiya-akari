@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // 会話履歴保存
 // =========================
@@ -36,7 +38,7 @@ function saveHistory({
   // =========================
 
   fs.appendFileSync(
-    "memory/chat_history.txt",
+    path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
 
     historyLog,
   );

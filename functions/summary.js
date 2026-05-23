@@ -1,6 +1,13 @@
 const fs = require("fs");
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const path = require("path");
+
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json"),
+    "utf-8",
+  ),
+);
 
 // =========================
 // summary生成
@@ -8,7 +15,10 @@ const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
 
 async function generateSummary(chatText) {
   try {
-    const promptTemplate = fs.readFileSync("prompts/summary.txt", "utf-8");
+    const promptTemplate = fs.readFileSync(
+      path.join(__dirname, "..", "prompts", "summary.txt"),
+      "utf-8",
+    );
 
     const prompt = promptTemplate.replace("{{CHAT_TEXT}}", chatText);
 

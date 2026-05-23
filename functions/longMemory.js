@@ -1,6 +1,13 @@
 const fs = require("fs");
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const path = require("path");
+
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json"),
+    "utf-8",
+  ),
+);
 
 // =========================
 // 類似記憶判定
@@ -51,7 +58,7 @@ function isSimilarMemory(line, existingLines) {
 async function generateLongMemory(summaryText) {
   try {
     const promptTemplate = fs.readFileSync(
-      "prompts/memory_summary.txt",
+      path.join(__dirname, "..", "prompts", "memory_summary.txt"),
       "utf-8",
     );
 
@@ -107,7 +114,11 @@ function normalizeLongMemory() {
     // file存在確認
     // =========================
 
-    if (!fs.existsSync("memory/long_memory.txt")) {
+    if (
+      !fs.existsSync(
+        path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+      )
+    ) {
       return;
     }
 
@@ -116,7 +127,10 @@ function normalizeLongMemory() {
     // =========================
 
     const lines = fs
-      .readFileSync("memory/long_memory.txt", "utf-8")
+      .readFileSync(
+        path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+        "utf-8",
+      )
       .split("\n");
 
     // =========================
@@ -220,7 +234,7 @@ function normalizeLongMemory() {
     // =========================
 
     fs.writeFileSync(
-      "memory/long_memory.txt",
+      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
 
       trimmed.join("\n") + "\n",
     );
@@ -251,7 +265,7 @@ async function saveLongMemory(memoryText) {
   // =========================
 
   fs.appendFileSync(
-    "memory/long_memory.txt",
+    path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
 
     memoryText + "\n",
   );

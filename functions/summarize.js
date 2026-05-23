@@ -1,10 +1,16 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // settings読み込み
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const settings = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "..", "config", "settings.json", "utf-8"),
+  ),
+);
 
 // =========================
 // 長期記憶生成
@@ -108,7 +114,11 @@ function normalizeLongMemory() {
     // file存在確認
     // =========================
 
-    if (!fs.existsSync("memory/long_memory.txt")) {
+    if (
+      !fs.existsSync(
+        path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+      )
+    ) {
       return;
     }
 
@@ -117,7 +127,10 @@ function normalizeLongMemory() {
     // =========================
 
     const lines = fs
-      .readFileSync("memory/long_memory.txt", "utf-8")
+      .readFileSync(
+        path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+        "utf-8",
+      )
       .split("\n");
 
     // =========================
@@ -195,7 +208,8 @@ function normalizeLongMemory() {
     // =========================
 
     fs.writeFileSync(
-      "memory/long_memory.txt",
+      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+      "utf-8",
 
       trimmed.join("\n") + "\n",
     );
@@ -224,7 +238,8 @@ async function saveLongMemory(memoryText) {
   // =========================
 
   fs.appendFileSync(
-    "memory/long_memory.txt",
+    path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+    "utf-8",
 
     "\n" + memoryText + "\n",
   );

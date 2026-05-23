@@ -4,7 +4,13 @@ const cors = require("cors");
 
 const fs = require("fs");
 
+const path = require("path");
+
 const chat = require("./chat");
+
+const settings = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
+);
 
 const app = express();
 
@@ -12,7 +18,7 @@ app.use(cors());
 
 app.use(express.json());
 
-app.use(express.static("public"));
+app.use(express.static(path.join(process.cwd(), "public")));
 
 // =========================
 // root
@@ -78,18 +84,32 @@ app.post(
       // good
       if (type === "good") {
         fs.appendFileSync(
-          "memory/feedback/good_examples.txt",
+          path.join(
+            process.cwd(),
+            settings.memoryDir,
+            "feedback",
+            "good_examples.txt",
+          ),
 
           saveText,
+
+          "utf-8",
         );
       }
 
       // bad
       else {
         fs.appendFileSync(
-          "memory/feedback/bad_examples.txt",
+          path.join(
+            process.cwd(),
+            settings.memoryDir,
+            "feedback",
+            "bad_examples.txt",
+          ),
 
           saveText,
+
+          "utf-8",
         );
       }
 

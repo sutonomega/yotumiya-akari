@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 const generateMessage = require("./functions/generateMessage");
 
 const processHistory = require("./functions/processHistory");
@@ -12,7 +14,9 @@ const log = require("./logger");
 // settings読み込み
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const settings = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
+);
 
 // =========================
 // chat
@@ -58,7 +62,7 @@ async function chat({
       userMessage,
 
       aiMessage: message,
-    });
+    }).catch(console.error);
 
     log("INFO", "chat終了");
 

@@ -1,21 +1,20 @@
 const fs = require("fs");
 
-function writeLog(type, message) {
-  const now = new Date().toLocaleString(
-    "ja-JP",
-    {
-      timeZone: "Asia/Tokyo",
-    }
-  );
+const path = require("path");
 
-  const logMessage =
-    `[${now}] [${type}] ${message}\n`;
+function writeLog(type, message) {
+  const now = new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+  });
+
+  const logMessage = `[${now}] [${type}] ${message}\n`;
 
   console.log(logMessage);
 
   fs.appendFileSync(
-    "logs/app.log",
-    logMessage
+    path.join(__dirname, "logs", "app.log"),
+
+    logMessage,
   );
 }
 

@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // 音声生成
 // =========================
@@ -47,7 +49,7 @@ async function speak(text) {
     const audioBuffer = await synthResponse.arrayBuffer();
 
     fs.writeFileSync(
-      "public/output.wav",
+      path.join(process.cwd(), "public", "output.wav"),
 
       Buffer.from(audioBuffer),
     );
