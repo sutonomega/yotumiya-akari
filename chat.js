@@ -1,20 +1,18 @@
-const log = require("./logger");
+const fs = require("fs");
 
 const generateMessage = require("./functions/generateMessage");
 
-const getCurrentState = require("./functions/getCurrentState");
-
-const updateTalkStats = require("./functions/updateTalkStats");
-
-const updateMood = require("./functions/updateMood");
-
 const processHistory = require("./functions/processHistory");
 
-const saveMood = require("./functions/saveMood");
+const speak = require("./functions/speak");
 
-const saveTalkStats = require("./functions/saveTalkStats");
+const log = require("./logger");
 
-const savePostCandidate = require("./functions/savePostCandidate");
+// =========================
+// settings読み込み
+// =========================
+
+const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
 
 // =========================
 // chat
@@ -25,109 +23,57 @@ async function chat({
 
   userMessage = "",
 }) {
-  log("INFO", "chat開始");
+  try {
+    log("INFO", "chat開始");
 
-  // =========================
-  // 現在状態取得
-  // =========================
+    // =========================
+    // メッセージ生成
+    // =========================
 
-  const state = getCurrentState();
+    log("INFO", "メッセージ生成開始");
 
-  const {
-    settings,
+    const message = await generateMessage({
+      mode,
 
-    now,
+      userMessage,
+    });
 
-    hour,
+    log("INFO", "メッセージ生成完了");
 
-    moodData,
+    // =========================
+    // 音声生成
+    // =========================
 
-    talkStats,
+    await speak(message);
 
-    diffHours,
-  } = state;
+    // =========================
+    // 履歴処理
+    // =========================
+    console.log("PROCESS HISTORY CALL");
+    processHistory({
+      settings,
 
-  // =========================
-  // 会話統計更新
-  // =========================
+      mode,
 
-  updateTalkStats({
-    talkStats,
+      userMessage,
 
-    now,
+      aiMessage: message,
+    });
 
-    mode,
-  });
+    log("INFO", "chat終了");
 
-  // =========================
-  // mood更新
-  // =========================
+    // =========================
+    // return
+    // =========================
 
-  updateMood({
-    moodData,
+    return message;
+  } catch (error) {
+    console.log("[CHAT ERROR]", error);
 
-    settings,
+    log("ERROR", error.toString());
 
-    hour,
-
-    diffHours,
-
-    mode,
-  });
-
-  // =========================
-  // AI応答生成
-  // =========================
-
-  log("INFO", "メッセージ生成開始");
-
-  const aiMessage = await generateMessage({
-    mode,
-
-    userMessage,
-  });
-
-  log("INFO", "メッセージ生成完了");
-
-  // =========================
-  // 履歴処理
-  // =========================
-
-  await processHistory({
-    settings,
-
-    mode,
-
-    userMessage,
-
-    aiMessage,
-  });
-
-  // =========================
-  // 定時つぶやき保存
-  // =========================
-
-  if (mode === "post") {
-    savePostCandidate(aiMessage);
+    return settings.defaultMessage;
   }
-
-  // =========================
-  // mood保存
-  // =========================
-
-  moodData.lastTalkTime = now.toISOString();
-
-  saveMood(moodData);
-
-  // =========================
-  // 会話統計保存
-  // =========================
-
-  saveTalkStats(talkStats);
-
-  log("INFO", "chat終了");
-
-  return aiMessage;
 }
 
 module.exports = chat;

@@ -25,14 +25,11 @@ function saveHistory({
   // 履歴生成
   // =========================
 
-  const historyLog = `
-${settings.userName}:
-${userMessage}
-
-${settings.aiName}:
-${aiMessage}
-
-`;
+  const historyLog =
+    `${settings.userName}:\n` +
+    `${userMessage}\n\n` +
+    `${settings.aiName}:\n` +
+    `${aiMessage}\n\n`;
 
   // =========================
   // 保存

@@ -7,6 +7,20 @@ const fs = require("fs");
 const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
 
 // =========================
+// 例文読み込み
+// =========================
+
+const goodExamples = fs.readFileSync(
+  "memory/feedback/good_examples.txt",
+  "utf-8",
+);
+
+const badExamples = fs.readFileSync(
+  "memory/feedback/bad_examples.txt",
+  "utf-8",
+);
+
+// =========================
 // chat_history parse
 // =========================
 
@@ -133,6 +147,12 @@ ${userProfile}
 
 【長期記憶】
 ${longMemory}
+
+【良い返答例】
+${goodExamples}
+
+【悪い返答例】
+${badExamples}
 `;
 
     // =========================

@@ -2,6 +2,8 @@ const express = require("express");
 
 const cors = require("cors");
 
+const fs = require("fs");
+
 const chat = require("./chat");
 
 const app = express();
@@ -9,6 +11,8 @@ const app = express();
 app.use(cors());
 
 app.use(express.json());
+
+app.use(express.static("public"));
 
 // =========================
 // root
@@ -53,14 +57,61 @@ app.post(
 );
 
 // =========================
+// feedback api
+// =========================
+
+app.post(
+  "/api/feedback",
+
+  (req, res) => {
+    try {
+      const {
+        type,
+
+        user,
+
+        reply,
+      } = req.body;
+
+      const saveText = `USER: ${user}\n` + `AI: ${reply}\n\n`;
+
+      // good
+      if (type === "good") {
+        fs.appendFileSync(
+          "memory/feedback/good_examples.txt",
+
+          saveText,
+        );
+      }
+
+      // bad
+      else {
+        fs.appendFileSync(
+          "memory/feedback/bad_examples.txt",
+
+          saveText,
+        );
+      }
+
+      console.log("[FEEDBACK]", type);
+
+      res.json({
+        success: true,
+      });
+    } catch (error) {
+      console.log("[FEEDBACK ERROR]", error);
+
+      res.status(500).json({
+        success: false,
+      });
+    }
+  },
+);
+
+// =========================
 // server start
 // =========================
 
-app.listen(
-  3000,
-  "0.0.0.0",
-
-  () => {
-    console.log("API SERVER START");
-  },
-);
+app.listen(3000, () => {
+  console.log("API SERVER START");
+});

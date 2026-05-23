@@ -17,6 +17,10 @@ function App() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const [lastReply, setLastReply] = useState("");
+
+  const [lastUserMessage, setLastUserMessage] = useState("");
+
   const commentListRef = useRef(null);
 
   // =========================
@@ -58,10 +62,30 @@ function App() {
   }
 
   // =========================
+  // 音声再生
+  // =========================
+
+  function playVoice() {
+    try {
+      const audio = new Audio("http://127.0.0.1:3000/output.wav?" + Date.now());
+
+      audio.volume = 1.0;
+
+      audio.play();
+    } catch (error) {
+      console.log("[VOICE PLAY ERROR]", error);
+    }
+  }
+
+  // =========================
   // コメント送信
   // =========================
 
   async function handleSubmit() {
+    console.log("HANDLE SUBMIT");
+
+    console.log(comment);
+
     if (!comment.trim()) {
       return;
     }
@@ -69,6 +93,8 @@ function App() {
     const userComment = comment;
 
     setComment("");
+
+    setLastUserMessage(userComment);
 
     // =========================
     // コメント履歴追加
@@ -78,7 +104,7 @@ function App() {
       ...prev,
 
       {
-        user: "galpachi",
+        user: "ガルパチ",
 
         text: userComment,
       },
@@ -92,6 +118,8 @@ function App() {
       setSubtitle("");
 
       setIsTyping(true);
+
+      console.log("BEFORE FETCH");
 
       const response = await fetch(
         "http://127.0.0.1:3000/api/chat",
@@ -109,7 +137,17 @@ function App() {
         },
       );
 
+      console.log("AFTER FETCH");
+
       const data = await response.json();
+
+      console.log(data);
+
+      // =========================
+      // latest reply
+      // =========================
+
+      setLastReply(data.reply);
 
       // =========================
       // typing終了
@@ -118,16 +156,54 @@ function App() {
       setIsTyping(false);
 
       // =========================
-      // タイプ演出表示
+      // タイプ演出
       // =========================
 
       await typeSubtitle(data.reply);
+
+      // =========================
+      // 音声再生
+      // =========================
+
+      playVoice();
     } catch (error) {
       console.log(error);
 
       setIsTyping(false);
 
       setSubtitle("通信エラー");
+    }
+  }
+
+  // =========================
+  // feedback
+  // =========================
+
+  async function sendFeedback(type) {
+    try {
+      await fetch(
+        "http://127.0.0.1:3000/api/feedback",
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            type,
+
+            user: lastUserMessage,
+
+            reply: lastReply,
+          }),
+        },
+      );
+
+      console.log("FEEDBACK SENT", type);
+    } catch (error) {
+      console.log(error);
     }
   }
 
@@ -196,6 +272,18 @@ function App() {
             subtitle
           )}
         </div>
+
+        {/* =========================
+            feedback
+        ========================= */}
+
+        {lastReply && (
+          <div className="feedback-buttons">
+            <button onClick={() => sendFeedback("good")}>👍</button>
+
+            <button onClick={() => sendFeedback("bad")}>👎</button>
+          </div>
+        )}
       </div>
 
       {/* =========================
@@ -229,6 +317,17 @@ function App() {
             }
           }}
         />
+
+        <button
+          className="send-button"
+          onClick={() => {
+            console.log("BUTTON CLICK");
+
+            handleSubmit();
+          }}
+        >
+          送信
+        </button>
       </div>
     </div>
   );
