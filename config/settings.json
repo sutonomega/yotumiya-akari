@@ -16,6 +16,6 @@
   "channelId": "1506657409622610083",
 
   "chatModel": "qwen3:4b",
-  "memoryModel": "qwen2.5:3b",
-  "summaryModel": "qwen2.5:3b"
+  "memoryModel": "qwen3:4b",
+  "summaryModel": "qwen3:4b"
 }
