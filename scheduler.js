@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 const log = require("./logger");
 
 const getCurrentState = require("./functions/getCurrentState");
@@ -53,7 +55,7 @@ async function checkScheduler() {
     schedulerData.lastAutoMessage = now.toISOString();
 
     fs.writeFileSync(
-      "memory/scheduler.json",
+      path.join(process.cwd(), settings.memoryDir, "scheduler.json"),
 
       JSON.stringify(schedulerData, null, 2),
     );
@@ -78,7 +80,7 @@ async function checkScheduler() {
       schedulerData.lastPostTime = currentSlot;
 
       fs.writeFileSync(
-        "memory/scheduler.json",
+        path.join(process.cwd(), settings.memoryDir, "scheduler.json"),
 
         JSON.stringify(schedulerData, null, 2),
       );

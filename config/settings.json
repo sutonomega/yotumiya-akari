@@ -2,6 +2,7 @@
   "energyDecrease": 1,
   "energyRecoveryPerHour": 15,
   "maxEnergy": 100,
+
   "recentChatLines": 30,
 
   "selfTalkIntervalHours": 6,
@@ -15,7 +16,9 @@
 
   "channelId": "1506657409622610083",
 
-  "chatModel": "qwen2.5:3b",
-  "memoryModel": "qwen2.5:3b",
-  "summaryModel": "qwen2.5:3b"
+  "chatModel": "qwen3:4b",
+  "memoryModel": "qwen3:4b",
+  "summaryModel": "qwen3:4b",
+
+  "memoryDir": "./eval_env/memory"
 }

@@ -62,7 +62,6 @@ functions/
 ├ saveMood.js
 ├ savePostCandidate.js
 ├ saveTalkStats.js
-├ summarize.js
 ├ updateMood.js
 └ updateTalkStats.js
 ```

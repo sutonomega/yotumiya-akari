@@ -1,12 +1,14 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
 // mood保存
 // =========================
 
-function saveMood(moodData) {
+function saveMood(settings, moodData) {
   fs.writeFileSync(
-    "memory/mood.json",
+    path.join(process.cwd(), settings.memoryDir, "mood.json"),
 
     JSON.stringify(moodData, null, 2),
   );

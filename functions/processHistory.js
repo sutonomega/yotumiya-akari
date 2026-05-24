@@ -2,7 +2,15 @@ const log = require("../logger");
 
 const saveHistory = require("./saveHistory");
 
-const processLongMemory = require("./summarize");
+const generateSummary = require("./summary");
+
+const {
+  generateLongMemory,
+
+  saveLongMemory,
+} = require("./longMemory");
+
+const compressHistory = require("./compressHistory");
 
 // =========================
 // 履歴処理
@@ -17,6 +25,8 @@ async function processHistory({
 
   aiMessage,
 }) {
+  console.log("PROCESS HISTORY START");
+
   // =========================
   // 履歴保存
   // =========================
@@ -39,18 +49,44 @@ async function processHistory({
     return;
   }
 
-  // =========================
-  // 長期記憶処理
-  // =========================
-
   try {
+    // =========================
+    // summary生成
+    // =========================
+
+    console.log("SUMMARY START");
+
+    const summary = await generateSummary(settings, historyLog);
+
+    console.log("[SUMMARY RESULT]", summary);
+
+    console.log("SUMMARY END");
+
+    // =========================
+    // 長期記憶生成
+    // =========================
+
     console.log("LONG MEMORY START");
 
-    await processLongMemory(historyLog);
+    const memory = await generateLongMemory(settings, summary);
+
+    console.log("[LONG MEMORY RESULT]", memory);
+
+    // =========================
+    // 保存
+    // =========================
+
+    await saveLongMemory(settings, memory);
 
     console.log("LONG MEMORY END");
+
+    // =========================
+    // chat_history圧縮
+    // =========================
+
+    await compressHistory(settings);
   } catch (error) {
-    console.log("LONG MEMORY ERROR", error);
+    console.log("PROCESS HISTORY ERROR", error);
 
     log("ERROR", error.toString());
   }

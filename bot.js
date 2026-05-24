@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const fs = require("fs");
 
+const path = require("path");
+
 const { Client, GatewayIntentBits } = require("discord.js");
 
 const chat = require("./chat");
@@ -14,7 +16,9 @@ const log = require("./logger");
 // settings読み込み
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+const settings = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
+);
 
 const CHANNEL_ID = settings.channelId;
 
@@ -49,7 +53,7 @@ client.once(
     setInterval(
       async () => {
         try {
-          const event = await checkScheduler();
+          const event = await checkScheduler(settings);
 
           if (!event) {
             return;
@@ -60,6 +64,8 @@ client.once(
           // =========================
 
           const aiMessage = await chat({
+            settings,
+
             mode: event.mode,
           });
 
@@ -112,6 +118,8 @@ client.on(
       // =========================
 
       const aiMessage = await chat({
+        settings,
+
         mode: "reply",
 
         userMessage: message.content,

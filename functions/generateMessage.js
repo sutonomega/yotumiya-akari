@@ -1,37 +1,103 @@
 const fs = require("fs");
 
+const path = require("path");
+
 // =========================
-// settings読み込み
+// chat_history parse
 // =========================
 
-const settings = JSON.parse(fs.readFileSync("config/settings.json", "utf-8"));
+function parseHistory(settings, historyText) {
+  const lines = historyText.split("\n");
+
+  const messages = [];
+
+  for (const line of lines) {
+    // user
+    if (line.startsWith(`${settings.userName}:`)) {
+      messages.push({
+        role: "user",
+
+        content: line.replace(`${settings.userName}:`, "").trim(),
+      });
+    }
+
+    // assistant
+    else if (line.startsWith(`${settings.aiName}:`)) {
+      messages.push({
+        role: "assistant",
+
+        content: line.replace(`${settings.aiName}:`, "").trim(),
+      });
+    }
+  }
+
+  return messages;
+}
 
 // =========================
 // generateMessage
 // =========================
 
 async function generateMessage({
+  settings,
+
   mode = "reply",
 
   userMessage = "",
 }) {
   try {
     // =========================
-    // profile読み込み
+    // 例文読み込み
     // =========================
 
-    const aiProfile = fs.readFileSync("memory/ai_profile.txt", "utf-8");
-
-    const userProfile = fs.readFileSync("memory/user_profile.txt", "utf-8");
-
-    const conversationRules = fs.readFileSync(
-      "memory/conversation_rules.txt",
+    const goodExamples = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        settings.memoryDir,
+        "feedback",
+        "good_examples.txt",
+      ),
       "utf-8",
     );
 
-    const longMemory = fs.readFileSync("memory/long_memory.txt", "utf-8");
+    const badExamples = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        settings.memoryDir,
+        "feedback",
+        "bad_examples.txt",
+      ),
+      "utf-8",
+    );
 
-    const chatHistory = fs.readFileSync("memory/chat_history.txt", "utf-8");
+    // =========================
+    // profile読み込み
+    // =========================
+
+    const aiProfile = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "ai_profile.txt"),
+      "utf-8",
+    );
+
+    const userProfile = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "user_profile.txt"),
+      "utf-8",
+    );
+
+    const conversationRules = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "conversation_rules.txt"),
+      "utf-8",
+    );
+
+    const longMemory = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
+      "utf-8",
+    );
+
+    const chatHistory = fs.readFileSync(
+      path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
+      "utf-8",
+    );
 
     // =========================
     // 最新履歴
@@ -44,25 +110,19 @@ async function generateMessage({
       .join("\n");
 
     // =========================
+    // history parse
+    // =========================
+
+    const historyMessages = parseHistory(settings, recentHistory);
+
+    // =========================
     // mode別指示
     // =========================
 
     let modePrompt = "";
 
-    // reply
-    if (mode === "reply") {
-      modePrompt = `
-現在、${settings.userName}と会話しています。
-
-${settings.userName}の発言:
-${userMessage}
-
-自然に返答してください。
-`;
-    }
-
     // self talk
-    else if (mode === "self_talk") {
+    if (mode === "self_talk") {
       modePrompt = `
 自然に話しかけてください。
 
@@ -93,13 +153,13 @@ ${userMessage}
     }
 
     // =========================
-    // prompt
+    // system prompt
     // =========================
 
-    const prompt = `
+    const systemPrompt = `
 ${conversationRules}
 
-【夜宮 灯プロフィール】
+【${settings.aiName}プロフィール】
 ${aiProfile}
 
 【${settings.userName}プロフィール】
@@ -108,21 +168,56 @@ ${userProfile}
 【長期記憶】
 ${longMemory}
 
-【最近の会話】
-${recentHistory}
+【良い返答例】
+${goodExamples}
 
-【現在モード】
-${mode}
-
-${modePrompt}
+【悪い返答例】
+${badExamples}
 `;
+
+    // =========================
+    // messages
+    // =========================
+
+    const messages = [
+      {
+        role: "system",
+
+        content: systemPrompt,
+      },
+
+      ...historyMessages,
+    ];
+
+    // =========================
+    // reply
+    // =========================
+
+    if (mode === "reply") {
+      messages.push({
+        role: "user",
+
+        content: userMessage,
+      });
+    }
+
+    // =========================
+    // self talk / post
+    // =========================
+    else {
+      messages.push({
+        role: "user",
+
+        content: modePrompt,
+      });
+    }
 
     // =========================
     // AI送信
     // =========================
 
     const response = await fetch(
-      "http://localhost:11434/api/generate",
+      "http://localhost:11434/api/chat",
 
       {
         method: "POST",
@@ -134,16 +229,20 @@ ${modePrompt}
         body: JSON.stringify({
           model: settings.chatModel,
 
-          prompt,
+          messages,
 
           stream: false,
+
+          options: {
+            temperature: 0.5,
+          },
         }),
       },
     );
 
     const data = await response.json();
 
-    let message = data.response.trim();
+    let message = data.message.content.trim();
 
     // =========================
     // think除去
