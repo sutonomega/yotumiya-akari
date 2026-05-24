@@ -44,7 +44,9 @@ async function chat({
     // 音声生成
     // =========================
 
-    await speak(message);
+    if (settings.enableVoice) {
+      await speak(message);
+    }
 
     // =========================
     // 履歴処理

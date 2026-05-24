@@ -16,9 +16,11 @@
 
   "channelId": "1506657409622610083",
 
-  "chatModel": "qwen3:4b",
-  "memoryModel": "qwen3:4b",
+  "chatModel": "qwen3:1.7b",
+  "memoryModel": "qwen3:1.7b",
   "summaryModel": "qwen3:4b",
 
-  "memoryDir": "./eval_env/memory"
+  "memoryDir": "memory",
+
+  "enableVoice": false
 }

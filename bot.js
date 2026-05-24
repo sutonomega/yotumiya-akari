@@ -87,56 +87,6 @@ client.once(
 );
 
 // =========================
-// メッセージ受信
-// =========================
-
-client.on(
-  "messageCreate",
-
-  async (message) => {
-    try {
-      // =========================
-      // BOT無視
-      // =========================
-
-      if (message.author.bot) {
-        return;
-      }
-
-      // =========================
-      // ログ
-      // =========================
-
-      log(
-        "DISCORD",
-
-        `${message.author.username}: ${message.content}`,
-      );
-
-      // =========================
-      // chat実行
-      // =========================
-
-      const aiMessage = await chat({
-        settings,
-
-        mode: "reply",
-
-        userMessage: message.content,
-      });
-
-      // =========================
-      // reply
-      // =========================
-
-      await message.reply(aiMessage);
-    } catch (error) {
-      console.log("[BOT ERROR]", error);
-    }
-  },
-);
-
-// =========================
 // login
 // =========================
 
