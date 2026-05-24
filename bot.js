@@ -17,7 +17,7 @@ const log = require("./logger");
 // =========================
 
 const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json", "utf-8")),
+  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
 );
 
 const CHANNEL_ID = settings.channelId;
