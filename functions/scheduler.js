@@ -4,7 +4,7 @@ const path = require("path");
 
 const log = require("./logger");
 
-const getCurrentState = require("./functions/getCurrentState");
+const getCurrentState = require("./getCurrentState");
 
 // =========================
 // scheduler判定

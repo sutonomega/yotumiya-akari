@@ -6,76 +6,110 @@ const path = require("path");
 
 const { Client, GatewayIntentBits } = require("discord.js");
 
-const chat = require("./chat");
+const log = require("./functions/logger");
 
-const checkScheduler = require("./scheduler");
+const checkScheduler = require("./functions/scheduler");
 
-const log = require("./logger");
+const generateMessage = require("./functions/generateMessage");
+
+const speak = require("./functions/speak");
 
 // =========================
-// settings読み込み
+// config
 // =========================
 
 const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
+  fs.readFileSync(path.join(process.cwd(), "config", "settings.json"), "utf-8"),
 );
 
-const CHANNEL_ID = settings.channelId;
-
 // =========================
-// Discord client
+// Discord Client
 // =========================
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-
-    GatewayIntentBits.GuildMessages,
-
-    GatewayIntentBits.MessageContent,
-  ],
+  intents: [GatewayIntentBits.Guilds],
 });
 
 // =========================
-// 起動完了
+// 起動
 // =========================
 
 client.once(
   "clientReady",
 
-  () => {
-    log("SYSTEM", `起動: ${client.user.tag}`);
+  async () => {
+    log(
+      "SYSTEM",
+
+      `起動: ${client.user.tag}`,
+    );
 
     // =========================
-    // scheduler監視
+    // scheduler loop
     // =========================
 
     setInterval(
       async () => {
         try {
-          const event = await checkScheduler(settings);
+          // =========================
+          // scheduler判定
+          // =========================
+
+          const event = await checkScheduler();
 
           if (!event) {
             return;
           }
 
           // =========================
-          // chat実行
+          // channel取得
           // =========================
 
-          const aiMessage = await chat({
+          const channel = await client.channels.fetch(settings.channelId);
+
+          if (!channel) {
+            return;
+          }
+
+          // =========================
+          // message生成
+          // =========================
+
+          const message = await generateMessage({
             settings,
 
             mode: event.mode,
           });
 
+          log(
+            "INFO",
+
+            "メッセージ生成完了",
+          );
+
+          // =========================
+          // voice
+          // =========================
+
+          if (settings.enableVoice) {
+            try {
+              await speak(message);
+            } catch (error) {
+              console.log("[VOICE ERROR]", error);
+            }
+          }
+
           // =========================
           // Discord送信
           // =========================
 
-          const channel = await client.channels.fetch(CHANNEL_ID);
+          await channel.send(message);
 
-          await channel.send(aiMessage);
+          log(
+            "INFO",
+
+            "時報送信完了",
+          );
         } catch (error) {
           console.log("[SCHEDULER ERROR]", error);
         }
