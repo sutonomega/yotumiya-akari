@@ -6,11 +6,25 @@ const fs = require("fs");
 
 const path = require("path");
 
-const chat = require("./chat");
+const generateMessage = require("./functions/generateMessage");
+
+const processHistory = require("./functions/processHistory");
+
+// =========================
+// settings
+// =========================
 
 const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
+  fs.readFileSync(
+    path.join(__dirname, "config", "settings.json"),
+
+    "utf-8",
+  ),
 );
+
+// =========================
+// app
+// =========================
 
 const app = express();
 
@@ -43,13 +57,27 @@ app.post(
 
       console.log("USER:", message);
 
-      const reply = await chat({
+      // =========================
+      // reply generate
+      // =========================
+
+      const reply = await generateMessage({
         settings,
 
         mode: "reply",
 
         userMessage: message,
       });
+
+      // =========================
+      // history process
+      // =========================
+
+      await processHistory();
+
+      // =========================
+      // response
+      // =========================
 
       res.json({
         reply,
@@ -83,13 +111,19 @@ app.post(
 
       const saveText = `USER: ${user}\n` + `AI: ${reply}\n\n`;
 
+      // =========================
       // good
+      // =========================
+
       if (type === "good") {
         fs.appendFileSync(
           path.join(
             process.cwd(),
+
             settings.memoryDir,
+
             "feedback",
+
             "good_examples.txt",
           ),
 
@@ -99,13 +133,18 @@ app.post(
         );
       }
 
+      // =========================
       // bad
+      // =========================
       else {
         fs.appendFileSync(
           path.join(
             process.cwd(),
+
             settings.memoryDir,
+
             "feedback",
+
             "bad_examples.txt",
           ),
 
