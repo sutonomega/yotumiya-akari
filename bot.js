@@ -14,6 +14,7 @@ const speak = require("./functions/speak");
 
 const loadSettings = require("./functions/loadSettings");
 const utteranceQueue = require("./functions/utteranceQueue");
+const { postMessage } = require("./functions/postTarget");
 
 // =========================
 // settings
@@ -120,7 +121,11 @@ client.once(
           // discord send
           // =========================
 
-          await channel.send(message);
+          await postMessage({
+            settings,
+            message,
+            discordChannel: channel,
+          });
 
           log(
             "DISCORD",
