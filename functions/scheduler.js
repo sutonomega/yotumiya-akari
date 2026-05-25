@@ -5,6 +5,7 @@ const path = require("path");
 const log = require("./logger");
 
 const getCurrentState = require("./getCurrentState");
+const { runNightlyProcess, shouldRunNightly } = require("./nightlyProcess");
 
 // =========================
 // scheduler判定
@@ -28,6 +29,10 @@ async function checkScheduler() {
 
     schedulerData,
   } = getCurrentState();
+
+  if (shouldRunNightly(settings, now)) {
+    await runNightlyProcess(settings, now);
+  }
 
   // =========================
   // 定時つぶやき判定
