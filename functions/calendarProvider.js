@@ -31,7 +31,11 @@ function normalizeEvent(event) {
 }
 
 function readLocalEvents(settings) {
-  const filePath = path.join(process.cwd(), settings.memoryDir, "calendar.json");
+  const filePath = path.join(
+    process.cwd(),
+    settings.memoryDir,
+    "calendar.json",
+  );
 
   if (!fs.existsSync(filePath)) {
     return [];
@@ -97,41 +101,81 @@ function parseIcsEvents(icsText) {
 }
 
 async function readIcsEvents(settings) {
-  if (!settings.calendarIcsUrl && !settings.calendarIcsPath) {
+  try {
+    if (!settings.calendarIcsUrl && !settings.calendarIcsPath) {
+      return [];
+    }
+
+    if (settings.calendarIcsUrl) {
+      const response = await fetchWithTimeout(
+        settings.calendarIcsUrl,
+        settings.calendarFetchTimeoutMs,
+      );
+      return parseIcsEvents(await response.text());
+    }
+
+    const filePath = path.resolve(process.cwd(), settings.calendarIcsPath);
+    return parseIcsEvents(fs.readFileSync(filePath, "utf-8"));
+  } catch (error) {
+    // =========================
+    // timeout
+    // =========================
+
+    if (error.name === "AbortError") {
+      console.log("[CALENDAR TIMEOUT] ICS fetch timeout");
+
+      return [];
+    }
+
+    // =========================
+    // normal error
+    // =========================
+
+    console.log("[CALENDAR ERROR]", error);
+
     return [];
   }
-
-  if (settings.calendarIcsUrl) {
-    const response = await fetchWithTimeout(
-      settings.calendarIcsUrl,
-      settings.calendarFetchTimeoutMs,
-    );
-    return parseIcsEvents(await response.text());
-  }
-
-  const filePath = path.resolve(process.cwd(), settings.calendarIcsPath);
-  return parseIcsEvents(fs.readFileSync(filePath, "utf-8"));
 }
 
 async function readGoogleEvents(settings) {
-  if (!settings.googleCalendarUrl) {
+  try {
+    if (!settings.googleCalendarUrl) {
+      return [];
+    }
+
+    const response = await fetchWithTimeout(
+      settings.googleCalendarUrl,
+      settings.calendarFetchTimeoutMs,
+    );
+    const data = await response.json();
+    return (data.items || []).map((item) =>
+      normalizeEvent({
+        id: item.id,
+        title: item.summary,
+        start: item.start?.dateTime || item.start?.date,
+        end: item.end?.dateTime || item.end?.date,
+        source: "google",
+      }),
+    );
+  } catch (error) {
+    // =========================
+    // timeout
+    // =========================
+
+    if (error.name === "AbortError") {
+      console.log("[CALENDAR TIMEOUT] Google Calendar fetch timeout");
+
+      return [];
+    }
+
+    // =========================
+    // normal error
+    // =========================
+
+    console.log("[CALENDAR ERROR]", error);
+
     return [];
   }
-
-  const response = await fetchWithTimeout(
-    settings.googleCalendarUrl,
-    settings.calendarFetchTimeoutMs,
-  );
-  const data = await response.json();
-  return (data.items || []).map((item) =>
-    normalizeEvent({
-      id: item.id,
-      title: item.summary,
-      start: item.start?.dateTime || item.start?.date,
-      end: item.end?.dateTime || item.end?.date,
-      source: "google",
-    }),
-  );
 }
 
 async function getCalendarEvents(settings) {
