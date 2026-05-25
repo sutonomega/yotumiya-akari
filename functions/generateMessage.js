@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
+const { getCalendarState } = require("./calendarState");
 const getCurrentState = require("./getCurrentState");
 const { createLlmProvider } = require("./llmProvider");
 const loadSettings = require("./loadSettings");
@@ -50,6 +51,7 @@ function buildSystemPrompt(settings, currentState) {
     `${settings.aiName} profile:\n${aiProfile}`,
     `${settings.userName} profile:\n${userProfile}`,
     `current state:\n${JSON.stringify(currentState, null, 2)}`,
+    currentState.calendar?.prompt ? `calendar:\n${currentState.calendar.prompt}` : "",
     `long memory:\n${longMemory}`,
     `good examples:\n${goodExamples}`,
     `bad examples:\n${badExamples}`,
@@ -75,6 +77,7 @@ async function generateMessage({
 
   try {
     const llm = createLlmProvider(settings);
+    state.calendar = await getCalendarState(settings, state.now);
     const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
     const recentHistory = chatHistory
       .trim()
@@ -99,7 +102,7 @@ async function generateMessage({
       const timeSignalPrompt = loadText("prompts", "time_signal.txt");
       messages.push({
         role: "user",
-        content: `${getTimeDescription(state)}\n\n${timeSignalPrompt}`,
+        content: `${getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
       });
     }
 
