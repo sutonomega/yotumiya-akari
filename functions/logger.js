@@ -1,49 +1,56 @@
 const fs = require("fs");
-
 const path = require("path");
 
-// =========================
-// log path
-// =========================
+const LOG_TYPES = Object.freeze({
+  AI: "AI",
+  SYSTEM: "SYSTEM",
+  CHAT: "CHAT",
+  MEMORY: "MEMORY",
+  DISCORD: "DISCORD",
+  X: "X",
+  VOICE: "VOICE",
+  ERROR: "ERROR",
+  INFO: "INFO",
+});
 
 const logDir = path.join(process.cwd(), "logs");
-
 const logPath = path.join(logDir, "app.log");
 
-// =========================
-// logs directory check
-// =========================
-
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, {
-    recursive: true,
-  });
+function ensureLogDir() {
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
 }
 
-// =========================
-// logger
-// =========================
+function formatTimestamp(date = new Date()) {
+  return date.toISOString();
+}
 
-function log(type, message) {
-  const now = new Date();
+function normalizeType(type) {
+  if (!type) {
+    return LOG_TYPES.INFO;
+  }
 
-  const timestamp =
-    `${now.getFullYear()}/` +
-    `${now.getMonth() + 1}/` +
-    `${now.getDate()} ` +
-    `${now.getHours()}:` +
-    `${now.getMinutes()}:` +
-    `${now.getSeconds()}`;
+  const normalized = String(type).toUpperCase();
+  return LOG_TYPES[normalized] || normalized;
+}
 
-  const line = `[${timestamp}] ` + `[${type}] ` + `${message}`;
+function log(type, message, meta = null) {
+  ensureLogDir();
+
+  const payload =
+    meta === null || meta === undefined ? "" : ` ${JSON.stringify(meta)}`;
+  const line = `[${formatTimestamp()}] [${normalizeType(type)}] ${message}${payload}`;
 
   console.log(line);
-
-  fs.appendFileSync(
-    logPath,
-
-    line + "\n",
-  );
+  fs.appendFileSync(logPath, `${line}\n`, "utf-8");
 }
+
+log.types = LOG_TYPES;
+log.ai = (message, meta) => log(LOG_TYPES.AI, message, meta);
+log.system = (message, meta) => log(LOG_TYPES.SYSTEM, message, meta);
+log.chat = (message, meta) => log(LOG_TYPES.CHAT, message, meta);
+log.memory = (message, meta) => log(LOG_TYPES.MEMORY, message, meta);
+log.error = (message, meta) => log(LOG_TYPES.ERROR, message, meta);
 
 module.exports = log;
