@@ -35,5 +35,10 @@
   "calendarUpcomingWindowHours": 6,
   "defaultWeather": "unknown",
 
+  "postTargets": ["discord"],
+  "postRetryCount": 2,
+  "xRateLimitPer15Min": 15,
+  "enableImageAttachment": false,
+
   "enableVoice": false
 }
