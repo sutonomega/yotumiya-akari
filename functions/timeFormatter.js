@@ -10,7 +10,7 @@ function formatTimeText(hour) {
   }
 
   if (normalizedHour === 12) {
-    return "午後0時";
+    return "午後12時";
   }
 
   return `午後${normalizedHour - 12}時`;
