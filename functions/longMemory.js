@@ -2,6 +2,8 @@ const fs = require("fs");
 
 const path = require("path");
 
+const { createLlmProvider } = require("./llmProvider");
+
 // =========================
 // 類似記憶判定
 // =========================
@@ -57,6 +59,12 @@ async function generateLongMemory(settings, summaryText) {
 
     const prompt = promptTemplate.replace("{{CHAT_TEXT}}", summaryText);
 
+    const provider = createLlmProvider(settings);
+    const memoryText = await provider.generate(prompt, {
+      model: settings.memoryModel,
+    });
+
+    /*
     const response = await fetch(
       "http://localhost:11434/api/generate",
 
@@ -86,6 +94,7 @@ async function generateLongMemory(settings, summaryText) {
     // =========================
 
     memoryText = memoryText.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    */
 
     console.log("[LONG MEMORY]", memoryText);
 

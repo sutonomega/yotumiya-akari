@@ -22,5 +22,10 @@
 
   "memoryDir": "memory",
 
+  "llmProvider": "ollama",
+  "ollamaBaseUrl": "http://localhost:11434",
+  "openAIModel": "gpt-4.1-mini",
+  "claudeModel": "claude-3-5-haiku-latest",
+
   "enableVoice": false
 }
