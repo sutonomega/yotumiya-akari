@@ -16,10 +16,24 @@ const LOG_TYPES = Object.freeze({
 const logDir = path.join(process.cwd(), "logs");
 const logPath = path.join(logDir, "app.log");
 
+let logStream = null;
+
 function ensureLogDir() {
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
   }
+}
+
+function getLogStream() {
+  if (!logStream) {
+    ensureLogDir();
+    logStream = fs.createWriteStream(logPath, {
+      flags: "a",
+      encoding: "utf-8",
+    });
+  }
+
+  return logStream;
 }
 
 function formatTimestamp(date = new Date()) {
@@ -36,15 +50,20 @@ function normalizeType(type) {
 }
 
 function log(type, message, meta = null) {
-  ensureLogDir();
-
   const payload =
     meta === null || meta === undefined ? "" : ` ${JSON.stringify(meta)}`;
   const line = `[${formatTimestamp()}] [${normalizeType(type)}] ${message}${payload}`;
 
   console.log(line);
-  fs.appendFileSync(logPath, `${line}\n`, "utf-8");
+  getLogStream().write(`${line}\n`);
 }
+
+log.close = () => {
+  if (logStream) {
+    logStream.end();
+    logStream = null;
+  }
+};
 
 log.types = LOG_TYPES;
 log.ai = (message, meta) => log(LOG_TYPES.AI, message, meta);

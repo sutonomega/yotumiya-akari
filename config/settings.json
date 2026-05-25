@@ -33,6 +33,7 @@
   "googleCalendarUrl": "",
   "calendarEndedWindowMinutes": 60,
   "calendarUpcomingWindowHours": 6,
+  "calendarFetchTimeoutMs": 5000,
   "defaultWeather": "unknown",
 
   "postTargets": ["discord"],

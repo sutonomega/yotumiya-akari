@@ -7,6 +7,8 @@ const loadSettings = require("./loadSettings");
 const parseHistory = require("./parseHistory");
 const { saveRecentPhrases, suppressRecentPhrases } = require("./recentPhrases");
 const { runResponsePipeline } = require("./responsePipeline");
+const { composeStatePrompt } = require("./statePrompt");
+const { formatTimeText } = require("./timeFormatter");
 
 function loadText(...paths) {
   const filePath = path.join(process.cwd(), ...paths);
@@ -49,7 +51,7 @@ function buildSystemPrompt(settings, currentState) {
     systemPrompt,
     `${settings.aiName} profile:\n${aiProfile}`,
     `${settings.userName} profile:\n${userProfile}`,
-    `current state:\n${JSON.stringify(currentState, null, 2)}`,
+    `current state:\n${composeStatePrompt(currentState)}`,
     currentState.calendar?.prompt ? `calendar:\n${currentState.calendar.prompt}` : "",
     `long memory:\n${longMemory}`,
     `good examples:\n${goodExamples}`,
@@ -118,7 +120,7 @@ async function generateMessage({
     let message = suppressRecentPhrases(settings, pipeline.finalReply);
 
     if (mode === "post") {
-      message = `${state.hour}:00\n${message}`;
+      message = `${formatTimeText(state.hour)}\n${message}`;
     }
 
     if (message.length > settings.replyMaxLength) {

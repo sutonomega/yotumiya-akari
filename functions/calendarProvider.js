@@ -1,6 +1,25 @@
 const fs = require("fs");
 const path = require("path");
 
+async function fetchWithTimeout(url, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Calendar fetch failed: ${response.status}`);
+    }
+
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function normalizeEvent(event) {
   return {
     id: event.id || `${event.title || event.summary}-${event.start}`,
@@ -83,7 +102,10 @@ async function readIcsEvents(settings) {
   }
 
   if (settings.calendarIcsUrl) {
-    const response = await fetch(settings.calendarIcsUrl);
+    const response = await fetchWithTimeout(
+      settings.calendarIcsUrl,
+      settings.calendarFetchTimeoutMs,
+    );
     return parseIcsEvents(await response.text());
   }
 
@@ -96,7 +118,10 @@ async function readGoogleEvents(settings) {
     return [];
   }
 
-  const response = await fetch(settings.googleCalendarUrl);
+  const response = await fetchWithTimeout(
+    settings.googleCalendarUrl,
+    settings.calendarFetchTimeoutMs,
+  );
   const data = await response.json();
   return (data.items || []).map((item) =>
     normalizeEvent({
@@ -125,6 +150,7 @@ async function getCalendarEvents(settings) {
 
 module.exports = {
   getCalendarEvents,
+  fetchWithTimeout,
   parseIcsEvents,
   readGoogleEvents,
   readIcsEvents,

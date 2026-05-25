@@ -6,39 +6,52 @@ const CATEGORIES = Object.freeze([
   "playful",
 ]);
 
-const RULES = [
-  {
-    category: "technical",
-    pattern: /コード|実装|エラー|API|bug|deploy|github|node|react|設定/i,
-  },
-  {
-    category: "emotional",
-    pattern: /つらい|悲しい|不安|疲れた|寂しい|泣|しんどい|こわい/i,
-  },
-  {
-    category: "sleepy",
-    pattern: /眠い|寝る|おやすみ|深夜|夜更かし|sleep/i,
-  },
-  {
-    category: "playful",
-    pattern: /笑|www|冗談|遊|かわいい|にゃ|ふふ|haha/i,
-  },
-];
+const CATEGORY_SIGNALS = Object.freeze({
+  technical: [
+    /コード|実装|エラー|API|bug|deploy|github|node|react|設定/i,
+    /修正|関数|ファイル|ログ|JSON|provider|scheduler/i,
+  ],
+  emotional: [
+    /つらい|悲しい|不安|疲れた|寂しい|泣|しんどい|こわい/i,
+    /大丈夫|助けて|もう無理|落ち込/i,
+  ],
+  sleepy: [
+    /眠い|寝る|おやすみ|深夜|夜更かし|sleep/i,
+    /朝まで|布団|まぶた/i,
+  ],
+  playful: [
+    /笑|www|冗談|遊ぼ|ふふ|haha/i,
+    /かわいい[ねな！!？?]*$|好きすぎ|ノリ/i,
+  ],
+});
+
+function scoreCategory(text, category) {
+  const signals = CATEGORY_SIGNALS[category] || [];
+
+  return signals.reduce((score, pattern) => {
+    return pattern.test(text) ? score + 1 : score;
+  }, 0);
+}
 
 function classifyConversation(message, currentState = {}) {
   const text = String(message || "");
-
-  for (const rule of RULES) {
-    if (rule.pattern.test(text)) {
-      return rule.category;
-    }
-  }
+  const scores = Object.fromEntries(
+    CATEGORIES.map((category) => [category, scoreCategory(text, category)]),
+  );
 
   if (currentState.hour >= 0 && currentState.hour < 6) {
-    return "sleepy";
+    scores.sleepy += 1;
   }
 
-  return "casual";
+  if (scores.playful === 1 && scores.technical > 0) {
+    scores.playful -= 1;
+  }
+
+  const [bestCategory, bestScore] = Object.entries(scores).sort(
+    (a, b) => b[1] - a[1],
+  )[0];
+
+  return bestScore > 0 ? bestCategory : "casual";
 }
 
 function categoryInstruction(category) {
@@ -60,4 +73,5 @@ module.exports = {
   CATEGORIES,
   categoryInstruction,
   classifyConversation,
+  scoreCategory,
 };
