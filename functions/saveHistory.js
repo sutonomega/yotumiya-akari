@@ -1,6 +1,4 @@
-const fs = require("fs");
-
-const path = require("path");
+const { appendMemoryText } = require("./stateStore");
 
 // =========================
 // 会話履歴保存
@@ -37,11 +35,7 @@ function saveHistory({
   // 保存
   // =========================
 
-  fs.appendFileSync(
-    path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
-
-    historyLog,
-  );
+  appendMemoryText("chat_history.txt", historyLog, settings);
 
   return historyLog;
 }
