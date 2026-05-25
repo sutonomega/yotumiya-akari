@@ -1,280 +1,162 @@
 const fs = require("fs");
-
 const path = require("path");
 
+const getCurrentState = require("./getCurrentState");
 const loadSettings = require("./loadSettings");
-
 const parseHistory = require("./parseHistory");
-
-// =========================
-// settings
-// =========================
-
-const settings = loadSettings();
-
-// =========================
-// text loader
-// =========================
+const { saveRecentPhrases, suppressRecentPhrases } = require("./recentPhrases");
+const { runResponsePipeline } = require("./responsePipeline");
 
 function loadText(...paths) {
-  return fs.readFileSync(
-    path.join(process.cwd(), ...paths),
+  const filePath = path.join(process.cwd(), ...paths);
 
-    "utf-8",
-  );
+  if (!fs.existsSync(filePath)) {
+    return "";
+  }
+
+  return fs.readFileSync(filePath, "utf-8");
 }
 
-// =========================
-// time description
-// =========================
+function getTimeDescription(currentState) {
+  const hour = currentState.hour;
 
-function getTimeDescription(currentHour) {
-  // 朝
-
-  if (currentHour >= 5 && currentHour <= 10) {
-    return "朝の時間帯です。\n" + "朝らしい空気感を表現してください。";
+  if (hour === 6) {
+    return "6時。おはようの生活感を少し入れて、朝の空気で返す。";
   }
 
-  // 昼
-
-  if (currentHour >= 11 && currentHour <= 16) {
-    return "昼の時間帯です。\n" + "昼らしい光や生活感を表現してください。";
+  if (hour === 0) {
+    return "0時。おやすみ前の静けさを大切にして返す。";
   }
 
-  // 夕方
-
-  if (currentHour >= 17 && currentHour <= 18) {
-    return (
-      "夕方の時間帯です。\n" + "夕暮れや帰宅前の空気感を表現してください。"
-    );
+  if (hour >= 7 && hour <= 23) {
+    return `${hour}時の時報。今の時間帯に合う短い一言にする。`;
   }
 
-  // 夜
-
-  if (currentHour >= 19 && currentHour <= 23) {
-    return "夜の時間帯です。\n" + "静かな夜の空気感を表現してください。";
-  }
-
-  // 深夜
-
-  return "深夜の時間帯です。\n" + "眠る前の静かな雰囲気を表現してください。";
+  return "深夜帯。投稿は控えめにし、必要な場合だけ短く返す。";
 }
 
-// =========================
-// generateMessage
-// =========================
+function buildSystemPrompt(settings, currentState) {
+  const goodExamples = loadText(settings.memoryDir, "feedback", "good_examples.txt");
+  const badExamples = loadText(settings.memoryDir, "feedback", "bad_examples.txt");
+  const aiProfile = loadText(settings.memoryDir, "ai_profile.txt");
+  const userProfile = loadText(settings.memoryDir, "user_profile.txt");
+  const conversationRules = loadText(settings.memoryDir, "conversation_rules.txt");
+  const longMemory = loadText(settings.memoryDir, "long_memory.txt");
+  const systemPrompt = loadText("prompts", "system.txt");
+
+  return [
+    systemPrompt,
+    `${settings.aiName} profile:\n${aiProfile}`,
+    `${settings.userName} profile:\n${userProfile}`,
+    `current state:\n${JSON.stringify(currentState, null, 2)}`,
+    `long memory:\n${longMemory}`,
+    `good examples:\n${goodExamples}`,
+    `bad examples:\n${badExamples}`,
+    conversationRules,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function sanitizeMessage(message) {
+  return String(message || "")
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .trim();
+}
+
+async function callOllama(settings, messages) {
+  const response = await fetch("http://localhost:11434/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: settings.chatModel,
+      messages,
+      stream: false,
+      options: {
+        temperature: settings.temperature,
+      },
+    }),
+  });
+
+  const data = await response.json();
+  const content = data?.message?.content;
+
+  if (!content) {
+    throw new Error("Ollama response invalid");
+  }
+
+  return sanitizeMessage(content);
+}
 
 async function generateMessage({
   mode = "reply",
-
   userMessage = "",
-
   currentHour = null,
-}) {
+  currentState = null,
+} = {}) {
+  const settings = loadSettings();
+  const state =
+    currentState ||
+    getCurrentState({
+      settings,
+      now: currentHour === null ? undefined : new Date(new Date().setHours(currentHour)),
+    });
+
   try {
-    // =========================
-    // memory
-    // =========================
-
-    const goodExamples = loadText(
-      settings.memoryDir,
-      "feedback",
-      "good_examples.txt",
-    );
-
-    const badExamples = loadText(
-      settings.memoryDir,
-      "feedback",
-      "bad_examples.txt",
-    );
-
-    const aiProfile = loadText(settings.memoryDir, "ai_profile.txt");
-
-    const userProfile = loadText(settings.memoryDir, "user_profile.txt");
-
-    const conversationRules = loadText(
-      settings.memoryDir,
-      "conversation_rules.txt",
-    );
-
-    const longMemory = loadText(settings.memoryDir, "long_memory.txt");
-
     const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
-
-    // =========================
-    // prompts
-    // =========================
-
-    const systemPrompt = loadText("prompts", "system.txt");
-
-    const timeSignalPrompt = loadText("prompts", "time_signal.txt");
-
-    // =========================
-    // recent history
-    // =========================
-
     const recentHistory = chatHistory
       .trim()
       .split("\n")
       .slice(-settings.recentChatLines)
       .join("\n");
 
-    // =========================
-    // history parse
-    // =========================
-
-    const historyMessages = parseHistory(settings, recentHistory);
-
-    // =========================
-    // system
-    // =========================
-
-    const finalSystemPrompt = `
-${systemPrompt}
-
-【${settings.aiName}プロフィール】
-${aiProfile}
-
-【${settings.userName}プロフィール】
-${userProfile}
-
-【長期記憶】
-${longMemory}
-
-【良い返答例】
-${goodExamples}
-
-【悪い返答例】
-${badExamples}
-
-${conversationRules}
-`;
-
-    // =========================
-    // messages
-    // =========================
-
     const messages = [
       {
         role: "system",
-
-        content: finalSystemPrompt,
+        content: buildSystemPrompt(settings, state),
       },
-
-      ...historyMessages,
+      ...parseHistory(settings, recentHistory),
     ];
-
-    // =========================
-    // time text
-    // =========================
-
-    let timeText = "";
-
-    // =========================
-    // reply
-    // =========================
 
     if (mode === "reply") {
       messages.push({
         role: "user",
-
         content: userMessage,
       });
-    }
-
-    // =========================
-    // time signal
-    // =========================
-    else if (mode === "post") {
-      const period = currentHour < 12 ? "午前" : "午後";
-
-      const displayHour = currentHour % 12 || 12;
-
-      timeText = `${period}${displayHour}時です。`;
-
-      const timeDescription = getTimeDescription(currentHour);
-
+    } else {
+      const timeSignalPrompt = loadText("prompts", "time_signal.txt");
       messages.push({
         role: "user",
-
-        content: `${timeDescription}\n\n` + timeSignalPrompt,
+        content: `${getTimeDescription(state)}\n\n${timeSignalPrompt}`,
       });
     }
 
-    // =========================
-    // ollama
-    // =========================
+    const pipeline = await runResponsePipeline({
+      settings,
+      userMessage: mode === "reply" ? userMessage : getTimeDescription(state),
+      currentState: state,
+      messages,
+      mode,
+      callModel: (nextMessages) => callOllama(settings, nextMessages),
+    });
 
-    const response = await fetch(
-      "http://localhost:11434/api/chat",
-
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          model: settings.chatModel,
-
-          messages,
-
-          stream: false,
-
-          options: {
-            temperature: settings.temperature,
-          },
-        }),
-      },
-    );
-
-    const data = await response.json();
-
-    // =========================
-    // debug
-    // =========================
-
-    console.log(JSON.stringify(data, null, 2));
-
-    // =========================
-    // response check
-    // =========================
-
-    if (!data.message || !data.message.content) {
-      throw new Error("Ollama response invalid");
-    }
-
-    let message = data.message.content.trim();
-
-    // =========================
-    // think remove
-    // =========================
-
-    message = message.replace(/<think>[\s\S]*?<\/think>/g, "");
-
-    message = message.trim();
-
-    // =========================
-    // add time text
-    // =========================
+    let message = suppressRecentPhrases(settings, sanitizeMessage(pipeline.finalReply));
 
     if (mode === "post") {
-      message = `${timeText}\n${message}`;
+      message = `${state.hour}:00\n${message}`;
     }
-
-    // =========================
-    // max length
-    // =========================
 
     if (message.length > settings.replyMaxLength) {
       message = message.slice(0, settings.replyMaxLength);
     }
 
+    saveRecentPhrases(settings, message);
+
     return message;
   } catch (error) {
     console.log("[GENERATE ERROR]", error);
-
     return settings.defaultMessage;
   }
 }
