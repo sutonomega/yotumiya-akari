@@ -27,5 +27,10 @@
   "openAIModel": "gpt-4.1-mini",
   "claudeModel": "claude-3-5-haiku-latest",
 
+  "calendarProvider": "local",
+  "calendarIcsUrl": "",
+  "calendarIcsPath": "",
+  "googleCalendarUrl": "",
+
   "enableVoice": false
 }
