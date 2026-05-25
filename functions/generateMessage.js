@@ -39,11 +39,22 @@ function getTimeDescription(currentState) {
 }
 
 function buildSystemPrompt(settings, currentState) {
-  const goodExamples = loadText(settings.memoryDir, "feedback", "good_examples.txt");
-  const badExamples = loadText(settings.memoryDir, "feedback", "bad_examples.txt");
+  const goodExamples = loadText(
+    settings.memoryDir,
+    "feedback",
+    "good_examples.txt",
+  );
+  const badExamples = loadText(
+    settings.memoryDir,
+    "feedback",
+    "bad_examples.txt",
+  );
   const aiProfile = loadText(settings.memoryDir, "ai_profile.txt");
   const userProfile = loadText(settings.memoryDir, "user_profile.txt");
-  const conversationRules = loadText(settings.memoryDir, "conversation_rules.txt");
+  const conversationRules = loadText(
+    settings.memoryDir,
+    "conversation_rules.txt",
+  );
   const longMemory = loadText(settings.memoryDir, "long_memory.txt");
   const systemPrompt = loadText("prompts", "system.txt");
 
@@ -51,8 +62,10 @@ function buildSystemPrompt(settings, currentState) {
     systemPrompt,
     `${settings.aiName} profile:\n${aiProfile}`,
     `${settings.userName} profile:\n${userProfile}`,
-    `current state:\n${composeStatePrompt(currentState)}`,
-    currentState.calendar?.prompt ? `calendar:\n${currentState.calendar.prompt}` : "",
+    `current state:\n${composeStatePrompt(currentState, settings)}`,
+    currentState.calendar?.prompt
+      ? `calendar:\n${currentState.calendar.prompt}`
+      : "",
     `long memory:\n${longMemory}`,
     `good examples:\n${goodExamples}`,
     `bad examples:\n${badExamples}`,
@@ -74,7 +87,10 @@ async function generateMessage({
     currentState ||
     (await getEnvironmentState({
       settings,
-      now: currentHour === null ? undefined : new Date(new Date().setHours(currentHour)),
+      now:
+        currentHour === null
+          ? undefined
+          : new Date(new Date().setHours(currentHour)),
       userMessage,
     }));
 
@@ -110,7 +126,10 @@ async function generateMessage({
 
     const pipeline = await runResponsePipeline({
       settings,
-      userMessage: mode === "reply" ? userMessage : eventPrompt || getTimeDescription(state),
+      userMessage:
+        mode === "reply"
+          ? userMessage
+          : eventPrompt || getTimeDescription(state),
       currentState: state,
       messages,
       mode,

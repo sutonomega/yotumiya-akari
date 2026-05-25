@@ -13,15 +13,33 @@ function formatWeather(weather) {
   return `${weather.summary}${temperature}`;
 }
 
-function formatEventList(events) {
+function isPrivateEvent(title, settings) {
+  const normalized = String(title || "").trim();
+
+  const keywords = settings.calendarPrivateKeywords || [];
+
+  return keywords.some((keyword) =>
+    normalized.toLowerCase().startsWith(keyword.toLowerCase()),
+  );
+}
+
+function formatEventList(events, settings) {
   if (!Array.isArray(events) || events.length === 0) {
     return "なし";
   }
 
-  return events.map((event) => event.title).join("、");
+  const visibleEvents = events.filter(
+    (event) => !isPrivateEvent(event.title, settings),
+  );
+
+  if (visibleEvents.length === 0) {
+    return "なし";
+  }
+
+  return visibleEvents.map((event) => event.title).join("、");
 }
 
-function composeStatePrompt(currentState) {
+function composeStatePrompt(currentState, settings) {
   const lines = [
     `現在時刻: ${formatTimeText(currentState.hour)}`,
     `時間帯: ${currentState.timeText || "不明"}`,
