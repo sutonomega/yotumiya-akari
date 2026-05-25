@@ -1,37 +1,22 @@
-console.log("PROCESS HISTORY START");
-
 const fs = require("fs");
 
 const path = require("path");
 
 // =========================
-// 履歴解析
+// parseHistory
 // =========================
 
-function parseHistory(settings) {
+function parseHistory(
+  settings,
+
+  historyText,
+) {
   try {
     // =========================
-    // file存在確認
+    // lines
     // =========================
 
-    if (
-      !fs.existsSync(
-        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
-      )
-    ) {
-      return "";
-    }
-
-    // =========================
-    // 読み込み
-    // =========================
-
-    const lines = fs
-      .readFileSync(
-        path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
-        "utf-8",
-      )
-      .split("\n");
+    const lines = historyText.split("\n");
 
     // =========================
     // NGワード
@@ -40,16 +25,20 @@ function parseHistory(settings) {
     const overusedWords = ["静かな夜", "雨の音", "心が落ち着く", "静かな時間"];
 
     // =========================
-    // フィルタ後履歴
+    // messages
     // =========================
 
-    const filtered = [];
+    const messages = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    // =========================
+    // parse
+    // =========================
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
 
       // =========================
-      // 空行除外
+      // empty
       // =========================
 
       if (!line) {
@@ -57,28 +46,42 @@ function parseHistory(settings) {
       }
 
       // =========================
-      // AI発言判定
+      // user
       // =========================
 
-      const isAIMessage = line.startsWith(`${settings.aiName}:`);
+      if (line.startsWith(`${settings.userName}:`)) {
+        messages.push({
+          role: "user",
+
+          content: line.replace(`${settings.userName}:`, "").trim(),
+        });
+
+        continue;
+      }
 
       // =========================
-      // 定型文除外
+      // assistant
       // =========================
 
-      if (isAIMessage) {
-        let skip = false;
+      if (line.startsWith(`${settings.aiName}:`)) {
+        const content = line.replace(`${settings.aiName}:`, "").trim();
 
-        // 短すぎる定型文
-        if (line.length < 25) {
-          skip = true;
+        // =========================
+        // short filter
+        // =========================
+
+        if (content.length < 25) {
+          continue;
         }
 
-        // NGワード多用
-        for (const word of overusedWords) {
-          const count = (line.match(new RegExp(word, "g")) || []).length;
+        // =========================
+        // NG word filter
+        // =========================
 
-          if (count >= 1) {
+        let skip = false;
+
+        for (const word of overusedWords) {
+          if (content.includes(word)) {
             skip = true;
 
             break;
@@ -88,26 +91,24 @@ function parseHistory(settings) {
         if (skip) {
           continue;
         }
-      }
 
-      filtered.push(line);
+        messages.push({
+          role: "assistant",
+
+          content,
+        });
+      }
     }
 
     // =========================
-    // 最新履歴取得
+    // recent
     // =========================
 
-    const recentLines = filtered.slice(-settings.recentChatLines);
-
-    // =========================
-    // join
-    // =========================
-
-    return recentLines.join("\n");
+    return messages.slice(-settings.recentChatLines);
   } catch (error) {
     console.log("[PARSE HISTORY ERROR]", error);
 
-    return "";
+    return [];
   }
 }
 
