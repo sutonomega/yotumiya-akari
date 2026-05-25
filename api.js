@@ -10,7 +10,7 @@ const generateMessage = require("./functions/generateMessage");
 
 const processHistory = require("./functions/processHistory");
 
-const getCurrentState = require("./functions/getCurrentState");
+const { getEnvironmentState } = require("./functions/environmentState");
 
 const loadSettings = require("./functions/loadSettings");
 const utteranceQueue = require("./functions/utteranceQueue");
@@ -68,7 +68,10 @@ app.post(
       // current state
       // =========================
 
-      const currentState = getCurrentState();
+      const currentState = await getEnvironmentState({
+        settings,
+        userMessage: message,
+      });
 
       // =========================
       // generate reply

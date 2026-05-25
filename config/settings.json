@@ -33,6 +33,7 @@
   "googleCalendarUrl": "",
   "calendarEndedWindowMinutes": 60,
   "calendarUpcomingWindowHours": 6,
+  "defaultWeather": "unknown",
 
   "enableVoice": false
 }

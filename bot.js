@@ -6,7 +6,7 @@ const log = require("./functions/logger");
 
 const checkScheduler = require("./functions/scheduler");
 
-const getCurrentState = require("./functions/getCurrentState");
+const { getEnvironmentState } = require("./functions/environmentState");
 
 const generateMessage = require("./functions/generateMessage");
 
@@ -64,7 +64,7 @@ client.once(
           // current state
           // =========================
 
-          const currentState = getCurrentState();
+          const currentState = await getEnvironmentState({ settings });
 
           // =========================
           // channel
@@ -84,7 +84,7 @@ client.once(
             generateMessage({
               mode: event.mode,
 
-              currentHour: currentState.hour,
+              currentState,
             }),
           );
 
