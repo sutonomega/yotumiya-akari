@@ -1,85 +1,148 @@
 # 夜宮 灯 / Yorumiya Akari
 
-静かな会話と長期記憶を持つ、ローカル人格AIプロジェクト。
+静かな時報と会話を行う、ローカル人格AIプロジェクト。
 
-Discord Botとして動作し、
-ユーザーとの会話・自発発言・定時つぶやきなどを行います。
+Discord Bot と WebUI を中心に動作し、
+ローカルLLMによる自然な発話・記憶・音声合成を行います。
 
 ---
 
-## 特徴
+# 特徴
 
 - ローカルLLMで動作
-- 長期記憶機能
-- 自発発言
-- 定時つぶやき
-- 静かな夜の空気感を重視した会話
+- 時報システム
+- 長期記憶
+- VOICEVOX対応
+- WebUI
+- prompts分離構成
+- function分離によるモジュール設計
+- settings.local.json対応
 - 軽量構成を意識した設計
-- function分離によるモジュール構成
 
 ---
 
-## 使用技術
+# 使用技術
 
 - Node.js
 - Discord.js
+- Express
+- Vite
+- React
 - Ollama
-- qwen2.5:3b
+- VOICEVOX
+- qwen3:1.7b
 
 ---
 
-## 現在の機能
+# 現在の機能
 
-### 会話
+## 時報
 
-ユーザーとの自然な会話を行います。
+1時間ごとに、
+静かな時報メッセージを投稿します。
 
-### 長期記憶
+## 会話
 
-会話から重要な内容を抽出し、
+WebUI経由で自然な会話を行います。
+
+## 長期記憶
+
+会話履歴から重要な内容を抽出し、
 long_memory.txtへ保存します。
 
-### 自発発言
+## 音声合成
 
-一定時間会話がない場合、
-自然に話しかけます。
+VOICEVOXによる音声生成に対応しています。
 
-### 定時つぶやき
+## Prompt管理
 
-時間帯に合わせた静かなつぶやきを投稿します。
+prompts/ 配下で、
+用途別にpromptを分離しています。
 
 ---
 
-## ディレクトリ構成
+# ディレクトリ構成
 
 ```txt
 functions/
+├ compressHistory.js
 ├ generateMessage.js
 ├ getCurrentState.js
 ├ loadJson.js
+├ loadSettings.js
+├ logger.js
+├ longMemory.js
+├ parseHistory.js
 ├ processHistory.js
 ├ saveHistory.js
 ├ saveMood.js
 ├ savePostCandidate.js
 ├ saveTalkStats.js
+├ scheduler.js
+├ speak.js
+├ summary.js
 ├ updateMood.js
 └ updateTalkStats.js
+
+prompts/
+├ memory_summary.txt
+├ summary.txt
+├ system.txt
+└ time_signal.txt
+
+config/
+├ settings.json
+├ settings.local.json
+└ settings.example.json
 ```
 
 ---
 
-## 今後やりたいこと
+# settings.local.json
 
-- 長期記憶の再要約
-- ログシステム整理
-- WebUI
-- 発話queue制御
-- モデル切り替え強化
-- memory整理最適化
+環境ごとの差分設定は
+settings.local.json で上書きできます。
+
+このファイルは Git 管理対象外です。
+
+例:
+
+```json
+{
+  "enableVoice": true
+}
+```
 
 ---
 
-## 注意
+# 開発メモ
 
-.env や memory フォルダ内の個人データは
-GitHubへアップロードしないでください。
+## VOICEVOX
+
+VOICEVOX Engine を別途起動してください。
+
+デフォルト:
+http://localhost:50021
+
+## Ollama
+
+ローカルLLMは Ollama 経由で利用します。
+
+---
+
+# 今後やりたいこと
+
+- ESP32移植
+- スピーカーデバイス化
+- 季節・天気連動
+- memory整理最適化
+- 発話queue制御
+- モデル切り替え強化
+- UI改善
+
+---
+
+# 注意
+
+.env や memory フォルダ内の個人データ、
+settings.local.json は GitHub にアップロードしないでください。

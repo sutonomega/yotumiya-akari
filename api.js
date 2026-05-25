@@ -12,23 +12,13 @@ const processHistory = require("./functions/processHistory");
 
 const getCurrentState = require("./functions/getCurrentState");
 
+const loadSettings = require("./functions/loadSettings");
+
 // =========================
 // settings
 // =========================
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(
-      __dirname,
-
-      "config",
-
-      "settings.json",
-    ),
-
-    "utf-8",
-  ),
-);
+const settings = loadSettings();
 
 // =========================
 // app
@@ -84,8 +74,6 @@ app.post(
       // =========================
 
       const reply = await generateMessage({
-        settings,
-
         mode: "reply",
 
         userMessage: message,

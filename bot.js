@@ -1,9 +1,5 @@
 require("dotenv").config();
 
-const fs = require("fs");
-
-const path = require("path");
-
 const { Client, GatewayIntentBits } = require("discord.js");
 
 const log = require("./functions/logger");
@@ -16,23 +12,13 @@ const generateMessage = require("./functions/generateMessage");
 
 const speak = require("./functions/speak");
 
+const loadSettings = require("./functions/loadSettings");
+
 // =========================
 // settings
 // =========================
 
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(
-      process.cwd(),
-
-      "config",
-
-      "settings.json",
-    ),
-
-    "utf-8",
-  ),
-);
+const settings = loadSettings();
 
 // =========================
 // discord client
@@ -94,8 +80,6 @@ client.once(
           // =========================
 
           const message = await generateMessage({
-            settings,
-
             mode: event.mode,
 
             currentHour: currentState.hour,
