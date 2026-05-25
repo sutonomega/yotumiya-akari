@@ -13,6 +13,7 @@ const processHistory = require("./functions/processHistory");
 const getCurrentState = require("./functions/getCurrentState");
 
 const loadSettings = require("./functions/loadSettings");
+const utteranceQueue = require("./functions/utteranceQueue");
 
 // =========================
 // settings
@@ -73,19 +74,26 @@ app.post(
       // generate reply
       // =========================
 
-      const reply = await generateMessage({
-        mode: "reply",
+      const reply = await utteranceQueue.enqueue("api:reply", () =>
+        generateMessage({
+          mode: "reply",
 
-        userMessage: message,
+          userMessage: message,
 
-        currentHour: currentState.hour,
-      });
+          currentHour: currentState.hour,
+        }),
+      );
 
       // =========================
       // history process
       // =========================
 
-      await processHistory();
+      await processHistory({
+        settings,
+        mode: "reply",
+        userMessage: message,
+        aiMessage: reply,
+      });
 
       // =========================
       // response
