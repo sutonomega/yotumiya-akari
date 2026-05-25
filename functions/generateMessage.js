@@ -2,36 +2,26 @@ const fs = require("fs");
 
 const path = require("path");
 
+const loadSettings = require("./loadSettings");
+
+const parseHistory = require("./parseHistory");
+
 // =========================
-// chat_history parse
+// settings
 // =========================
 
-function parseHistory(settings, historyText) {
-  const lines = historyText.split("\n");
+const settings = loadSettings();
 
-  const messages = [];
+// =========================
+// text loader
+// =========================
 
-  for (const line of lines) {
-    // user
-    if (line.startsWith(`${settings.userName}:`)) {
-      messages.push({
-        role: "user",
+function loadText(...paths) {
+  return fs.readFileSync(
+    path.join(process.cwd(), ...paths),
 
-        content: line.replace(`${settings.userName}:`, "").trim(),
-      });
-    }
-
-    // assistant
-    else if (line.startsWith(`${settings.aiName}:`)) {
-      messages.push({
-        role: "assistant",
-
-        content: line.replace(`${settings.aiName}:`, "").trim(),
-      });
-    }
-  }
-
-  return messages;
+    "utf-8",
+  );
 }
 
 // =========================
@@ -39,68 +29,52 @@ function parseHistory(settings, historyText) {
 // =========================
 
 async function generateMessage({
-  settings,
-
   mode = "reply",
 
   userMessage = "",
+
+  currentHour = null,
 }) {
   try {
     // =========================
-    // 例文読み込み
+    // memory
     // =========================
 
-    const goodExamples = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        settings.memoryDir,
-        "feedback",
-        "good_examples.txt",
-      ),
-      "utf-8",
+    const goodExamples = loadText(
+      settings.memoryDir,
+      "feedback",
+      "good_examples.txt",
     );
 
-    const badExamples = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        settings.memoryDir,
-        "feedback",
-        "bad_examples.txt",
-      ),
-      "utf-8",
+    const badExamples = loadText(
+      settings.memoryDir,
+      "feedback",
+      "bad_examples.txt",
     );
+
+    const aiProfile = loadText(settings.memoryDir, "ai_profile.txt");
+
+    const userProfile = loadText(settings.memoryDir, "user_profile.txt");
+
+    const conversationRules = loadText(
+      settings.memoryDir,
+      "conversation_rules.txt",
+    );
+
+    const longMemory = loadText(settings.memoryDir, "long_memory.txt");
+
+    const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
 
     // =========================
-    // profile読み込み
+    // prompts
     // =========================
 
-    const aiProfile = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "ai_profile.txt"),
-      "utf-8",
-    );
+    const systemPrompt = loadText("prompts", "system.txt");
 
-    const userProfile = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "user_profile.txt"),
-      "utf-8",
-    );
-
-    const conversationRules = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "conversation_rules.txt"),
-      "utf-8",
-    );
-
-    const longMemory = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
-      "utf-8",
-    );
-
-    const chatHistory = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
-      "utf-8",
-    );
+    const timeSignalPrompt = loadText("prompts", "time_signal.txt");
 
     // =========================
-    // 最新履歴
+    // recent history
     // =========================
 
     const recentHistory = chatHistory
@@ -116,48 +90,11 @@ async function generateMessage({
     const historyMessages = parseHistory(settings, recentHistory);
 
     // =========================
-    // mode別指示
+    // system
     // =========================
 
-    let modePrompt = "";
-
-    // self talk
-    if (mode === "self_talk") {
-      modePrompt = `
-自然に話しかけてください。
-
-条件:
-- 静かな呼びかけ
-- 雑談
-- 独り言寄りでもよい
-- 質問攻め禁止
-`;
-    }
-
-    // post
-    else if (mode === "post") {
-      modePrompt = `
-時間帯に合った、
-静かな日常のつぶやきを
-生成してください。
-
-条件:
-- 1〜2文
-- 40文字前後
-- 落ち着いた雰囲気
-- 日常の空気感
-- 詩的すぎない
-- 質問しない
-- ${settings.userName}への呼びかけ禁止
-`;
-    }
-
-    // =========================
-    // system prompt
-    // =========================
-
-    const systemPrompt = `
-${conversationRules}
+    const finalSystemPrompt = `
+${systemPrompt}
 
 【${settings.aiName}プロフィール】
 ${aiProfile}
@@ -173,6 +110,8 @@ ${goodExamples}
 
 【悪い返答例】
 ${badExamples}
+
+${conversationRules}
 `;
 
     // =========================
@@ -183,11 +122,25 @@ ${badExamples}
       {
         role: "system",
 
-        content: systemPrompt,
+        content: finalSystemPrompt,
       },
 
       ...historyMessages,
     ];
+
+    // =========================
+    // time text
+    // =========================
+
+    let timeText = "";
+
+    if (mode === "post") {
+      const period = currentHour < 12 ? "午前" : "午後";
+
+      const displayHour = currentHour % 12 || 12;
+
+      timeText = `${period}${displayHour}時です。`;
+    }
 
     // =========================
     // reply
@@ -202,18 +155,18 @@ ${badExamples}
     }
 
     // =========================
-    // self talk / post
+    // time signal
     // =========================
-    else {
+    else if (mode === "post") {
       messages.push({
         role: "user",
 
-        content: modePrompt,
+        content: timeSignalPrompt,
       });
     }
 
     // =========================
-    // AI送信
+    // ollama
     // =========================
 
     const response = await fetch(
@@ -234,7 +187,7 @@ ${badExamples}
           stream: false,
 
           options: {
-            temperature: 0.5,
+            temperature: settings.temperature,
           },
         }),
       },
@@ -245,19 +198,23 @@ ${badExamples}
     let message = data.message.content.trim();
 
     // =========================
-    // think除去
+    // think remove
     // =========================
 
-    message = message.replace(
-      /<think>[\s\S]*?<\/think>/g,
-
-      "",
-    );
+    message = message.replace(/<think>[\s\S]*?<\/think>/g, "");
 
     message = message.trim();
 
     // =========================
-    // 長さ制限
+    // add time text
+    // =========================
+
+    if (mode === "post") {
+      message = `${timeText}\n${message}`;
+    }
+
+    // =========================
+    // max length
     // =========================
 
     if (message.length > settings.replyMaxLength) {

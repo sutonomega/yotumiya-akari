@@ -10,20 +10,32 @@ const log = require("./functions/logger");
 
 const checkScheduler = require("./functions/scheduler");
 
+const getCurrentState = require("./functions/getCurrentState");
+
 const generateMessage = require("./functions/generateMessage");
 
 const speak = require("./functions/speak");
 
 // =========================
-// config
+// settings
 // =========================
 
 const settings = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), "config", "settings.json"), "utf-8"),
+  fs.readFileSync(
+    path.join(
+      process.cwd(),
+
+      "config",
+
+      "settings.json",
+    ),
+
+    "utf-8",
+  ),
 );
 
 // =========================
-// Discord Client
+// discord client
 // =========================
 
 const client = new Client({
@@ -31,7 +43,7 @@ const client = new Client({
 });
 
 // =========================
-// 起動
+// ready
 // =========================
 
 client.once(
@@ -52,7 +64,7 @@ client.once(
       async () => {
         try {
           // =========================
-          // scheduler判定
+          // scheduler check
           // =========================
 
           const event = await checkScheduler();
@@ -62,7 +74,13 @@ client.once(
           }
 
           // =========================
-          // channel取得
+          // current state
+          // =========================
+
+          const currentState = getCurrentState();
+
+          // =========================
+          // channel
           // =========================
 
           const channel = await client.channels.fetch(settings.channelId);
@@ -72,19 +90,21 @@ client.once(
           }
 
           // =========================
-          // message生成
+          // generate message
           // =========================
 
           const message = await generateMessage({
             settings,
 
             mode: event.mode,
+
+            currentHour: currentState.hour,
           });
 
           log(
             "INFO",
 
-            "メッセージ生成完了",
+            `生成: ${message}`,
           );
 
           // =========================
@@ -94,24 +114,38 @@ client.once(
           if (settings.enableVoice) {
             try {
               await speak(message);
+
+              log(
+                "VOICE",
+
+                "音声再生完了",
+              );
             } catch (error) {
-              console.log("[VOICE ERROR]", error);
+              console.log(
+                "[VOICE ERROR]",
+
+                error,
+              );
             }
           }
 
           // =========================
-          // Discord送信
+          // discord send
           // =========================
 
           await channel.send(message);
 
           log(
-            "INFO",
+            "DISCORD",
 
             "時報送信完了",
           );
         } catch (error) {
-          console.log("[SCHEDULER ERROR]", error);
+          console.log(
+            "[SCHEDULER ERROR]",
+
+            error,
+          );
         }
       },
 

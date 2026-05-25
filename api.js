@@ -10,13 +10,21 @@ const generateMessage = require("./functions/generateMessage");
 
 const processHistory = require("./functions/processHistory");
 
+const getCurrentState = require("./functions/getCurrentState");
+
 // =========================
 // settings
 // =========================
 
 const settings = JSON.parse(
   fs.readFileSync(
-    path.join(__dirname, "config", "settings.json"),
+    path.join(
+      __dirname,
+
+      "config",
+
+      "settings.json",
+    ),
 
     "utf-8",
   ),
@@ -32,7 +40,15 @@ app.use(cors());
 
 app.use(express.json());
 
-app.use(express.static(path.join(process.cwd(), "public")));
+app.use(
+  express.static(
+    path.join(
+      process.cwd(),
+
+      "public",
+    ),
+  ),
+);
 
 // =========================
 // root
@@ -58,7 +74,13 @@ app.post(
       console.log("USER:", message);
 
       // =========================
-      // reply generate
+      // current state
+      // =========================
+
+      const currentState = getCurrentState();
+
+      // =========================
+      // generate reply
       // =========================
 
       const reply = await generateMessage({
@@ -67,6 +89,8 @@ app.post(
         mode: "reply",
 
         userMessage: message,
+
+        currentHour: currentState.hour,
       });
 
       // =========================
@@ -83,7 +107,11 @@ app.post(
         reply,
       });
     } catch (error) {
-      console.log("API ERROR", error);
+      console.log(
+        "[API ERROR]",
+
+        error,
+      );
 
       res.status(500).json({
         reply: "エラーが発生しました。",
@@ -160,7 +188,11 @@ app.post(
         success: true,
       });
     } catch (error) {
-      console.log("[FEEDBACK ERROR]", error);
+      console.log(
+        "[FEEDBACK ERROR]",
+
+        error,
+      );
 
       res.status(500).json({
         success: false,
