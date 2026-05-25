@@ -1,8 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { getCalendarState } = require("./calendarState");
-const getCurrentState = require("./getCurrentState");
+const { getEnvironmentState } = require("./environmentState");
 const { createLlmProvider } = require("./llmProvider");
 const loadSettings = require("./loadSettings");
 const parseHistory = require("./parseHistory");
@@ -70,14 +69,14 @@ async function generateMessage({
   const settings = loadSettings();
   const state =
     currentState ||
-    getCurrentState({
+    (await getEnvironmentState({
       settings,
       now: currentHour === null ? undefined : new Date(new Date().setHours(currentHour)),
-    });
+      userMessage,
+    }));
 
   try {
     const llm = createLlmProvider(settings);
-    state.calendar = await getCalendarState(settings, state.now);
     const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
     const recentHistory = chatHistory
       .trim()
