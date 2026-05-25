@@ -65,6 +65,7 @@ async function generateMessage({
   userMessage = "",
   currentHour = null,
   currentState = null,
+  eventPrompt = "",
 } = {}) {
   const settings = loadSettings();
   const state =
@@ -101,13 +102,13 @@ async function generateMessage({
       const timeSignalPrompt = loadText("prompts", "time_signal.txt");
       messages.push({
         role: "user",
-        content: `${getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
+        content: `${eventPrompt || getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
       });
     }
 
     const pipeline = await runResponsePipeline({
       settings,
-      userMessage: mode === "reply" ? userMessage : getTimeDescription(state),
+      userMessage: mode === "reply" ? userMessage : eventPrompt || getTimeDescription(state),
       currentState: state,
       messages,
       mode,

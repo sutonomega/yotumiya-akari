@@ -1,70 +1,38 @@
-const fs = require("fs");
-
-const path = require("path");
-
 const log = require("./logger");
-
 const getCurrentState = require("./getCurrentState");
+const { shouldPostAt } = require("./lifeRhythm");
 const { runNightlyProcess, shouldRunNightly } = require("./nightlyProcess");
-
-// =========================
-// scheduler判定
-// =========================
+const { writeState } = require("./stateStore");
 
 async function checkScheduler() {
-  log("SYSTEM", "定期チェック");
+  log.system("scheduler check");
 
-  // =========================
-  // 現在状態取得
-  // =========================
-
-  const {
-    settings,
-
-    now,
-
-    hour,
-
-    minute,
-
-    schedulerData,
-  } = getCurrentState();
+  const { settings, now, hour, minute, schedulerData } = getCurrentState();
 
   if (shouldRunNightly(settings, now)) {
     await runNightlyProcess(settings, now);
   }
 
-  // =========================
-  // 定時つぶやき判定
-  // =========================
+  const postSlot = shouldPostAt({ hour, minute, schedulerData });
 
-  const currentSlot = `${hour}:${minute}`;
-
-  // 毎時00分に実行
-  if (minute === 0) {
-    // 同じ時間帯での重複防止
-    if (schedulerData.lastPostTime !== currentSlot) {
-      log("SYSTEM", "定時つぶやき要求");
-
-      schedulerData.lastPostTime = currentSlot;
-
-      fs.writeFileSync(
-        path.join(process.cwd(), settings.memoryDir, "scheduler.json"),
-
-        JSON.stringify(schedulerData, null, 2),
-      );
-
-      return {
-        mode: "post",
-      };
-    }
+  if (!postSlot) {
+    return null;
   }
 
-  // =========================
-  // 発言なし
-  // =========================
+  schedulerData.lastPostTime = postSlot.currentSlot;
+  writeState("scheduler.json", schedulerData, settings);
 
-  return null;
+  log.system("scheduled post requested", {
+    hour,
+    minute,
+    kind: postSlot.kind,
+  });
+
+  return {
+    mode: postSlot.mode,
+    kind: postSlot.kind,
+    prompt: postSlot.prompt,
+  };
 }
 
 module.exports = checkScheduler;
