@@ -13,6 +13,7 @@ const generateMessage = require("./functions/generateMessage");
 const speak = require("./functions/speak");
 
 const loadSettings = require("./functions/loadSettings");
+const utteranceQueue = require("./functions/utteranceQueue");
 
 // =========================
 // settings
@@ -79,11 +80,13 @@ client.once(
           // generate message
           // =========================
 
-          const message = await generateMessage({
-            mode: event.mode,
+          const message = await utteranceQueue.enqueue("scheduler:post", () =>
+            generateMessage({
+              mode: event.mode,
 
-            currentHour: currentState.hour,
-          });
+              currentHour: currentState.hour,
+            }),
+          );
 
           log(
             "INFO",
