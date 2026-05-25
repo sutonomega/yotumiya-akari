@@ -86,6 +86,8 @@ client.once(
               mode: event.mode,
 
               currentState,
+
+              eventPrompt: event.prompt,
             }),
           );
 
