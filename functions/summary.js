@@ -1,6 +1,7 @@
 const fs = require("fs");
 
 const path = require("path");
+const { createLlmProvider } = require("./llmProvider");
 
 // =========================
 // summary生成
@@ -15,31 +16,8 @@ async function generateSummary(settings, chatText) {
 
     const prompt = promptTemplate.replace("{{CHAT_TEXT}}", chatText);
 
-    const response = await fetch(
-      "http://localhost:11434/api/generate",
-
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          model: settings.summaryModel,
-
-          prompt,
-
-          stream: false,
-        }),
-      },
-    );
-
-    const data = await response.json();
-
-    let summary = data?.response?.trim() || "";
-
-    summary = summary.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    const provider = createLlmProvider(settings);
+    const summary = await provider.generate(prompt, { model: settings.summaryModel });
 
     console.log("[SUMMARY]", summary);
 

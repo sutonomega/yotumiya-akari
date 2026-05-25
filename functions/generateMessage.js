@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const getCurrentState = require("./getCurrentState");
+const { createLlmProvider } = require("./llmProvider");
 const loadSettings = require("./loadSettings");
 const parseHistory = require("./parseHistory");
 const { saveRecentPhrases, suppressRecentPhrases } = require("./recentPhrases");
@@ -58,38 +59,6 @@ function buildSystemPrompt(settings, currentState) {
     .join("\n\n");
 }
 
-function sanitizeMessage(message) {
-  return String(message || "")
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .trim();
-}
-
-async function callOllama(settings, messages) {
-  const response = await fetch("http://localhost:11434/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: settings.chatModel,
-      messages,
-      stream: false,
-      options: {
-        temperature: settings.temperature,
-      },
-    }),
-  });
-
-  const data = await response.json();
-  const content = data?.message?.content;
-
-  if (!content) {
-    throw new Error("Ollama response invalid");
-  }
-
-  return sanitizeMessage(content);
-}
-
 async function generateMessage({
   mode = "reply",
   userMessage = "",
@@ -105,6 +74,7 @@ async function generateMessage({
     });
 
   try {
+    const llm = createLlmProvider(settings);
     const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
     const recentHistory = chatHistory
       .trim()
@@ -139,10 +109,10 @@ async function generateMessage({
       currentState: state,
       messages,
       mode,
-      callModel: (nextMessages) => callOllama(settings, nextMessages),
+      callModel: (nextMessages) => llm.chat(nextMessages),
     });
 
-    let message = suppressRecentPhrases(settings, sanitizeMessage(pipeline.finalReply));
+    let message = suppressRecentPhrases(settings, pipeline.finalReply);
 
     if (mode === "post") {
       message = `${state.hour}:00\n${message}`;
