@@ -47,8 +47,10 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
     {
       role: "system",
       content:
-        `Rewrite the draft as ${settings.aiName}. Keep it natural, concise, and in Japanese. ` +
-        "Do not explain the rewrite process.",
+        "下書きを自然な日本語に整えてください。" +
+        "短く自然にしてください。" +
+        "名前だけを出力しないでください。" +
+        "説明は不要です。",
     },
     {
       role: "user",
@@ -66,7 +68,12 @@ async function runResponsePipeline({
   callModel,
 }) {
   const analysis = await analyzeInput({ settings, userMessage, currentState });
-  const baseReply = await buildBaseReply({ callModel, messages, analysis, mode });
+  const baseReply = await buildBaseReply({
+    callModel,
+    messages,
+    analysis,
+    mode,
+  });
   const finalReply = await personalizeReply({
     callModel,
     baseReply,
