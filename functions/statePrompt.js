@@ -46,9 +46,9 @@ function composeStatePrompt(currentState, settings) {
     `天気: ${formatWeather(currentState.weather)}`,
     `気分: ${currentState.moodData?.mood || "不明"}`,
     `会話カテゴリ: ${currentState.conversation?.category || "casual"}`,
-    `現在の予定: ${formatEventList(currentState.calendar?.currentEvents)}`,
-    `直近で終わった予定: ${formatEventList(currentState.calendar?.recentlyEndedEvents)}`,
-    `このあとの予定: ${formatEventList(currentState.calendar?.upcomingEvents)}`,
+    `現在の予定: ${formatEventList(currentState.calendar?.currentEvents, settings)}`,
+    `直近で終わった予定: ${formatEventList(currentState.calendar?.recentlyEndedEvents, settings)}`,
+    `このあとの予定: ${formatEventList(currentState.calendar?.upcomingEvents, settings)}`,
   ];
 
   return lines.join("\n");
