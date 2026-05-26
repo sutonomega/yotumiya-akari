@@ -1,138 +1,73 @@
-const fs = require("fs");
-
-const path = require("path");
-
-const loadJson = require("./loadJson");
-
-// =========================
-// settings読み込み
-// =========================
-
-const settings = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "..", "config", "settings.json"),
-    "utf-8",
-  ),
-);
-
-// =========================
-// 時間帯取得
-// =========================
+const loadSettings = require("./loadSettings");
+const { readState } = require("./stateStore");
 
 function getTimeText(hour) {
   if (hour >= 5 && hour < 11) {
-    return "朝";
+    return "morning";
   }
 
   if (hour >= 11 && hour < 18) {
-    return "昼";
+    return "daytime";
   }
 
   if (hour >= 18 && hour < 22) {
-    return "夕方";
+    return "evening";
   }
 
-  return "夜";
+  return "night";
 }
 
-// =========================
-// 現在状態取得
-// =========================
-
-function getCurrentState() {
-  // =========================
-  // 現在時刻
-  // =========================
-
-  const now = new Date();
-
+function getCurrentState(overrides = {}) {
+  const settings = overrides.settings || loadSettings();
+  const now = overrides.now || new Date();
   const hour = now.getHours();
-
   const minute = now.getMinutes();
-
   const timeText = getTimeText(hour);
 
-  // =========================
-  // mood
-  // =========================
-
-  const moodData = loadJson(
-    path.join(process.cwd(), settings.memoryDir, "mood.json"),
-
+  const moodData = readState(
+    "mood.json",
     {
-      mood: "落ち着いている",
-
+      mood: "calm",
       energy: settings.maxEnergy,
-
-      atmosphere: "静かな空気",
-
+      atmosphere: "quiet",
       lastTalkTime: now.toISOString(),
     },
+    settings,
   );
 
-  // =========================
-  // scheduler
-  // =========================
-
-  const schedulerData = loadJson(
-    path.join(process.cwd(), settings.memoryDir, "scheduler.json"),
-
+  const schedulerData = readState(
+    "scheduler.json",
     {
       lastAutoMessage: null,
-
       lastPostTime: null,
     },
+    settings,
   );
 
-  // =========================
-  // talk stats
-  // =========================
-
-  const talkStats = loadJson(
-    path.join(settings.memoryDir, "talk_stats.json"),
-
+  const talkStats = readState(
+    "talk_stats.json",
     {
       todayCount: 0,
-
       lastTalkDate: now.toISOString().split("T")[0],
     },
+    settings,
   );
 
-  // =========================
-  // 最終会話時間
-  // =========================
-
-  const lastTalkTime = new Date(moodData.lastTalkTime);
-
+  const lastTalkTime = new Date(moodData.lastTalkTime || now);
   const diffMs = now - lastTalkTime;
-
   const diffHours = diffMs / (1000 * 60 * 60);
-
-  // =========================
-  // return
-  // =========================
 
   return {
     settings,
-
     now,
-
     hour,
-
     minute,
-
     timeText,
-
     moodData,
-
     schedulerData,
-
     talkStats,
-
     lastTalkTime,
-
     diffMs,
-
     diffHours,
   };
 }

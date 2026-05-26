@@ -6,11 +6,24 @@ const fs = require("fs");
 
 const path = require("path");
 
-const chat = require("./chat");
+const generateMessage = require("./functions/generateMessage");
 
-const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
-);
+const processHistory = require("./functions/processHistory");
+
+const { getEnvironmentState } = require("./functions/environmentState");
+
+const loadSettings = require("./functions/loadSettings");
+const utteranceQueue = require("./functions/utteranceQueue");
+
+// =========================
+// settings
+// =========================
+
+const settings = loadSettings();
+
+// =========================
+// app
+// =========================
 
 const app = express();
 
@@ -18,7 +31,15 @@ app.use(cors());
 
 app.use(express.json());
 
-app.use(express.static(path.join(process.cwd(), "public")));
+app.use(
+  express.static(
+    path.join(
+      process.cwd(),
+
+      "public",
+    ),
+  ),
+);
 
 // =========================
 // root
@@ -43,19 +64,53 @@ app.post(
 
       console.log("USER:", message);
 
-      const reply = await chat({
+      // =========================
+      // current state
+      // =========================
+
+      const currentState = await getEnvironmentState({
         settings,
-
-        mode: "reply",
-
         userMessage: message,
       });
+
+      // =========================
+      // generate reply
+      // =========================
+
+      const reply = await utteranceQueue.enqueue("api:reply", () =>
+        generateMessage({
+          mode: "reply",
+
+          userMessage: message,
+
+          currentHour: currentState.hour,
+        }),
+      );
+
+      // =========================
+      // history process
+      // =========================
+
+      await processHistory({
+        settings,
+        mode: "reply",
+        userMessage: message,
+        aiMessage: reply,
+      });
+
+      // =========================
+      // response
+      // =========================
 
       res.json({
         reply,
       });
     } catch (error) {
-      console.log("API ERROR", error);
+      console.log(
+        "[API ERROR]",
+
+        error,
+      );
 
       res.status(500).json({
         reply: "エラーが発生しました。",
@@ -83,13 +138,19 @@ app.post(
 
       const saveText = `USER: ${user}\n` + `AI: ${reply}\n\n`;
 
+      // =========================
       // good
+      // =========================
+
       if (type === "good") {
         fs.appendFileSync(
           path.join(
             process.cwd(),
+
             settings.memoryDir,
+
             "feedback",
+
             "good_examples.txt",
           ),
 
@@ -99,13 +160,18 @@ app.post(
         );
       }
 
+      // =========================
       // bad
+      // =========================
       else {
         fs.appendFileSync(
           path.join(
             process.cwd(),
+
             settings.memoryDir,
+
             "feedback",
+
             "bad_examples.txt",
           ),
 
@@ -121,7 +187,11 @@ app.post(
         success: true,
       });
     } catch (error) {
-      console.log("[FEEDBACK ERROR]", error);
+      console.log(
+        "[FEEDBACK ERROR]",
+
+        error,
+      );
 
       res.status(500).json({
         success: false,

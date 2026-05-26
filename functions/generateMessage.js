@@ -1,281 +1,156 @@
 const fs = require("fs");
-
 const path = require("path");
 
-// =========================
-// chat_history parse
-// =========================
+const { getEnvironmentState } = require("./environmentState");
+const { createLlmProvider } = require("./llmProvider");
+const loadSettings = require("./loadSettings");
+const parseHistory = require("./parseHistory");
+const { saveRecentPhrases, suppressRecentPhrases } = require("./recentPhrases");
+const { runResponsePipeline } = require("./responsePipeline");
+const { composeStatePrompt } = require("./statePrompt");
+const { formatTimeText } = require("./timeFormatter");
 
-function parseHistory(settings, historyText) {
-  const lines = historyText.split("\n");
+function loadText(...paths) {
+  const filePath = path.join(process.cwd(), ...paths);
 
-  const messages = [];
-
-  for (const line of lines) {
-    // user
-    if (line.startsWith(`${settings.userName}:`)) {
-      messages.push({
-        role: "user",
-
-        content: line.replace(`${settings.userName}:`, "").trim(),
-      });
-    }
-
-    // assistant
-    else if (line.startsWith(`${settings.aiName}:`)) {
-      messages.push({
-        role: "assistant",
-
-        content: line.replace(`${settings.aiName}:`, "").trim(),
-      });
-    }
+  if (!fs.existsSync(filePath)) {
+    return "";
   }
 
-  return messages;
+  return fs.readFileSync(filePath, "utf-8");
 }
 
-// =========================
-// generateMessage
-// =========================
+function getTimeDescription(currentState) {
+  const hour = currentState.hour;
+
+  if (hour === 6) {
+    return "6時。おはようの生活感を少し入れて、朝の空気で返す。";
+  }
+
+  if (hour === 0) {
+    return "0時。おやすみ前の静けさを大切にして返す。";
+  }
+
+  if (hour >= 7 && hour <= 23) {
+    return `${hour}時の時報。今の時間帯に合う短い一言にする。`;
+  }
+
+  return "深夜帯。投稿は控えめにし、必要な場合だけ短く返す。";
+}
+
+function buildSystemPrompt(settings, currentState) {
+  const goodExamples = loadText(
+    settings.memoryDir,
+    "feedback",
+    "good_examples.txt",
+  );
+  const badExamples = loadText(
+    settings.memoryDir,
+    "feedback",
+    "bad_examples.txt",
+  );
+  const aiProfile = loadText(settings.memoryDir, "ai_profile.txt");
+  const userProfile = loadText(settings.memoryDir, "user_profile.txt");
+  const conversationRules = loadText(
+    settings.memoryDir,
+    "conversation_rules.txt",
+  );
+  const longMemory = loadText(settings.memoryDir, "long_memory.txt");
+  const systemPrompt = loadText("prompts", "system.txt");
+
+  return [
+    systemPrompt,
+    `${settings.aiName} profile:\n${aiProfile}`,
+    `${settings.userName} profile:\n${userProfile}`,
+    `current state:\n${composeStatePrompt(currentState, settings)}`,
+    currentState.calendar?.prompt
+      ? `calendar:\n${currentState.calendar.prompt}`
+      : "",
+    `long memory:\n${longMemory}`,
+    `good examples:\n${goodExamples}`,
+    `bad examples:\n${badExamples}`,
+    conversationRules,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
 
 async function generateMessage({
-  settings,
-
   mode = "reply",
-
   userMessage = "",
-}) {
+  currentHour = null,
+  currentState = null,
+  eventPrompt = "",
+} = {}) {
+  const settings = loadSettings();
+  const state =
+    currentState ||
+    (await getEnvironmentState({
+      settings,
+      now:
+        currentHour === null
+          ? undefined
+          : new Date(new Date().setHours(currentHour)),
+      userMessage,
+    }));
+
   try {
-    // =========================
-    // 例文読み込み
-    // =========================
-
-    const goodExamples = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        settings.memoryDir,
-        "feedback",
-        "good_examples.txt",
-      ),
-      "utf-8",
-    );
-
-    const badExamples = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        settings.memoryDir,
-        "feedback",
-        "bad_examples.txt",
-      ),
-      "utf-8",
-    );
-
-    // =========================
-    // profile読み込み
-    // =========================
-
-    const aiProfile = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "ai_profile.txt"),
-      "utf-8",
-    );
-
-    const userProfile = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "user_profile.txt"),
-      "utf-8",
-    );
-
-    const conversationRules = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "conversation_rules.txt"),
-      "utf-8",
-    );
-
-    const longMemory = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "long_memory.txt"),
-      "utf-8",
-    );
-
-    const chatHistory = fs.readFileSync(
-      path.join(process.cwd(), settings.memoryDir, "chat_history.txt"),
-      "utf-8",
-    );
-
-    // =========================
-    // 最新履歴
-    // =========================
-
+    const llm = createLlmProvider(settings);
+    const chatHistory = loadText(settings.memoryDir, "chat_history.txt");
     const recentHistory = chatHistory
       .trim()
       .split("\n")
       .slice(-settings.recentChatLines)
       .join("\n");
 
-    // =========================
-    // history parse
-    // =========================
-
-    const historyMessages = parseHistory(settings, recentHistory);
-
-    // =========================
-    // mode別指示
-    // =========================
-
-    let modePrompt = "";
-
-    // self talk
-    if (mode === "self_talk") {
-      modePrompt = `
-自然に話しかけてください。
-
-条件:
-- 静かな呼びかけ
-- 雑談
-- 独り言寄りでもよい
-- 質問攻め禁止
-`;
-    }
-
-    // post
-    else if (mode === "post") {
-      modePrompt = `
-時間帯に合った、
-静かな日常のつぶやきを
-生成してください。
-
-条件:
-- 1〜2文
-- 40文字前後
-- 落ち着いた雰囲気
-- 日常の空気感
-- 詩的すぎない
-- 質問しない
-- ${settings.userName}への呼びかけ禁止
-`;
-    }
-
-    // =========================
-    // system prompt
-    // =========================
-
-    const systemPrompt = `
-${conversationRules}
-
-【${settings.aiName}プロフィール】
-${aiProfile}
-
-【${settings.userName}プロフィール】
-${userProfile}
-
-【長期記憶】
-${longMemory}
-
-【良い返答例】
-${goodExamples}
-
-【悪い返答例】
-${badExamples}
-`;
-
-    // =========================
-    // messages
-    // =========================
-
     const messages = [
       {
         role: "system",
-
-        content: systemPrompt,
+        content: buildSystemPrompt(settings, state),
       },
-
-      ...historyMessages,
+      ...parseHistory(settings, recentHistory),
     ];
-
-    // =========================
-    // reply
-    // =========================
 
     if (mode === "reply") {
       messages.push({
         role: "user",
-
         content: userMessage,
       });
-    }
-
-    // =========================
-    // self talk / post
-    // =========================
-    else {
+    } else {
+      const timeSignalPrompt = loadText("prompts", "time_signal.txt");
       messages.push({
         role: "user",
-
-        content: modePrompt,
+        content: `${eventPrompt || getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
       });
     }
 
-    // =========================
-    // AI送信
-    // =========================
+    const pipeline = await runResponsePipeline({
+      settings,
+      userMessage:
+        mode === "reply"
+          ? userMessage
+          : eventPrompt || getTimeDescription(state),
+      currentState: state,
+      messages,
+      mode,
+      callModel: (nextMessages) => llm.chat(nextMessages),
+    });
 
-    const response = await fetch(
-      "http://localhost:11434/api/chat",
-
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          model: settings.chatModel,
-
-          messages,
-
-          stream: false,
-
-          options: {
-            temperature: 0.5,
-          },
-        }),
-      },
-    );
-
-    const data = await response.json();
-
-    let message = data.message.content.trim();
-
-    // =========================
-    // think除去
-    // =========================
-
-    message = message.replace(
-      /<think>[\s\S]*?<\/think>/g,
-
-      "",
-    );
-
-    message = message.trim();
-
-    // =========================
-    // mode別装飾
-    // =========================
+    let message = suppressRecentPhrases(settings, pipeline.finalReply);
 
     if (mode === "post") {
-      message = `【定時つぶやき】\n${message}`;
+      message = `${formatTimeText(state.hour)}\n${message}`;
     }
-
-    // =========================
-    // 長さ制限
-    // =========================
 
     if (message.length > settings.replyMaxLength) {
       message = message.slice(0, settings.replyMaxLength);
     }
 
+    saveRecentPhrases(settings, message);
+
     return message;
   } catch (error) {
     console.log("[GENERATE ERROR]", error);
-
     return settings.defaultMessage;
   }
 }

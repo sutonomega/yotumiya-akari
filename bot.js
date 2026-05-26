@@ -1,138 +1,150 @@
 require("dotenv").config();
 
-const fs = require("fs");
-
-const path = require("path");
-
 const { Client, GatewayIntentBits } = require("discord.js");
 
-const chat = require("./chat");
+const log = require("./functions/logger");
 
-const checkScheduler = require("./scheduler");
+const checkScheduler = require("./functions/scheduler");
 
-const log = require("./logger");
+const { getEnvironmentState } = require("./functions/environmentState");
 
-// =========================
-// settings読み込み
-// =========================
+const generateMessage = require("./functions/generateMessage");
 
-const settings = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "config", "settings.json"), "utf-8"),
-);
+const speak = require("./functions/speak");
 
-const CHANNEL_ID = settings.channelId;
+const loadSettings = require("./functions/loadSettings");
+const utteranceQueue = require("./functions/utteranceQueue");
+const { postMessage } = require("./functions/postTarget");
 
 // =========================
-// Discord client
+// settings
+// =========================
+
+const settings = loadSettings();
+
+// =========================
+// discord client
 // =========================
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-
-    GatewayIntentBits.GuildMessages,
-
-    GatewayIntentBits.MessageContent,
-  ],
+  intents: [GatewayIntentBits.Guilds],
 });
 
 // =========================
-// 起動完了
+// ready
 // =========================
 
 client.once(
   "clientReady",
 
-  () => {
-    log("SYSTEM", `起動: ${client.user.tag}`);
+  async () => {
+    log(
+      "SYSTEM",
+
+      `起動: ${client.user.tag}`,
+    );
 
     // =========================
-    // scheduler監視
+    // scheduler loop
     // =========================
 
     setInterval(
       async () => {
         try {
-          const event = await checkScheduler(settings);
+          // =========================
+          // scheduler check
+          // =========================
+
+          const event = await checkScheduler();
 
           if (!event) {
             return;
           }
 
           // =========================
-          // chat実行
+          // current state
           // =========================
 
-          const aiMessage = await chat({
-            settings,
+          const currentState = await getEnvironmentState({ settings });
 
-            mode: event.mode,
+          // =========================
+          // channel
+          // =========================
+
+          const channel = await client.channels.fetch(settings.channelId);
+
+          if (!channel) {
+            return;
+          }
+
+          // =========================
+          // generate message
+          // =========================
+
+          const message = await utteranceQueue.enqueue("scheduler:post", () =>
+            generateMessage({
+              mode: event.mode,
+
+              currentState,
+
+              eventPrompt: event.prompt,
+            }),
+          );
+
+          log(
+            "INFO",
+
+            `生成: ${message}`,
+          );
+
+          // =========================
+          // voice
+          // =========================
+
+          if (settings.enableVoice) {
+            try {
+              await speak(message);
+
+              log(
+                "VOICE",
+
+                "音声再生完了",
+              );
+            } catch (error) {
+              console.log(
+                "[VOICE ERROR]",
+
+                error,
+              );
+            }
+          }
+
+          // =========================
+          // discord send
+          // =========================
+
+          await postMessage({
+            settings,
+            message,
+            discordChannel: channel,
           });
 
-          // =========================
-          // Discord送信
-          // =========================
+          log(
+            "DISCORD",
 
-          const channel = await client.channels.fetch(CHANNEL_ID);
-
-          await channel.send(aiMessage);
+            "時報送信完了",
+          );
         } catch (error) {
-          console.log("[SCHEDULER ERROR]", error);
+          console.log(
+            "[SCHEDULER ERROR]",
+
+            error,
+          );
         }
       },
 
       60 * 1000,
     );
-  },
-);
-
-// =========================
-// メッセージ受信
-// =========================
-
-client.on(
-  "messageCreate",
-
-  async (message) => {
-    try {
-      // =========================
-      // BOT無視
-      // =========================
-
-      if (message.author.bot) {
-        return;
-      }
-
-      // =========================
-      // ログ
-      // =========================
-
-      log(
-        "DISCORD",
-
-        `${message.author.username}: ${message.content}`,
-      );
-
-      // =========================
-      // chat実行
-      // =========================
-
-      const aiMessage = await chat({
-        settings,
-
-        mode: "reply",
-
-        userMessage: message.content,
-      });
-
-      // =========================
-      // reply
-      // =========================
-
-      await message.reply(aiMessage);
-    } catch (error) {
-      console.log("[BOT ERROR]", error);
-    }
   },
 );
 

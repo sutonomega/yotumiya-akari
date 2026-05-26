@@ -41,7 +41,5 @@
   "xRateLimitPer15Min": 15,
   "enableImageAttachment": false,
 
-  "enableVoice": false,
-
-  "calendarPrivateKeywords": ["private:"]
+  "enableVoice": false
 }

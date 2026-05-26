@@ -1,85 +1,184 @@
 # 夜宮 灯 / Yorumiya Akari
 
-静かな会話と長期記憶を持つ、ローカル人格AIプロジェクト。
+静かな時報と会話を行う、ローカル人格AIプロジェクト。
 
-Discord Botとして動作し、
-ユーザーとの会話・自発発言・定時つぶやきなどを行います。
+Discord Bot と WebUI を中心に動作し、
+ローカルLLMによる自然な発話・記憶・音声合成を行います。
 
 ---
 
-## 特徴
+# 特徴
 
 - ローカルLLMで動作
-- 長期記憶機能
-- 自発発言
-- 定時つぶやき
-- 静かな夜の空気感を重視した会話
+- 時報システム
+- 長期記憶
+- Google Calendar / ICS連携
+- private予定 filtering
+- phrase repetition suppression
+- VOICEVOX対応
+- WebUI
+- prompts分離構成
+- function分離によるモジュール設計
+- settings.local.json対応
 - 軽量構成を意識した設計
-- function分離によるモジュール構成
+- runtime error handling
 
 ---
 
-## 使用技術
+# 使用技術
 
 - Node.js
 - Discord.js
+- Express
+- Vite
+- React
 - Ollama
-- qwen2.5:3b
+- VOICEVOX
+- Google Calendar API
+- dotenv
+- qwen3:1.7b
 
 ---
 
-## 現在の機能
+# 現在の機能
 
-### 会話
+## 時報
 
-ユーザーとの自然な会話を行います。
+1時間ごとに、
+静かな時報メッセージを投稿します。
 
-### 長期記憶
+## 会話
 
-会話から重要な内容を抽出し、
+WebUI経由で自然な会話を行います。
+
+## 長期記憶
+
+会話履歴から重要な内容を抽出し、
 long_memory.txtへ保存します。
 
-### 自発発言
+## カレンダー連携
 
-一定時間会話がない場合、
-自然に話しかけます。
+Google Calendar / ICS から予定を取得し、
+現在の予定や今後の予定を発話へ反映します。
 
-### 定時つぶやき
+private keyword に一致する予定は
+promptへ表示しません。
 
-時間帯に合わせた静かなつぶやきを投稿します。
+## 音声合成
+
+VOICEVOXによる音声生成に対応しています。
+
+## Prompt管理
+
+prompts/ 配下で、
+用途別にpromptを分離しています。
 
 ---
 
-## ディレクトリ構成
+# ディレクトリ構成
 
 ```txt
 functions/
-├ generateMessage.js
-├ getCurrentState.js
-├ loadJson.js
-├ processHistory.js
-├ saveHistory.js
-├ saveMood.js
-├ savePostCandidate.js
-├ saveTalkStats.js
-├ updateMood.js
-└ updateTalkStats.js
+prompts/
+config/
+memory/
+webui/
 ```
 
 ---
 
-## 今後やりたいこと
+# .env
 
-- 長期記憶の再要約
-- ログシステム整理
-- WebUI
-- 発話queue制御
-- モデル切り替え強化
-- memory整理最適化
+秘密情報は .env で管理します。
+
+例:
+
+```env
+DISCORD_TOKEN=xxxxxxxx
+```
 
 ---
 
-## 注意
+# settings.local.json
 
-.env や memory フォルダ内の個人データは
-GitHubへアップロードしないでください。
+環境ごとの差分設定は
+settings.local.json で上書きできます。
+
+このファイルは Git 管理対象外です。
+
+例:
+
+```json
+{
+  "enableVoice": true
+}
+```
+
+---
+
+# Calendar設定
+
+## Google Calendar
+
+```json
+{
+  "calendarProvider": "google",
+  "googleCalendarUrl": "https://www.googleapis.com/calendar/v3/calendars/..."
+}
+```
+
+## ICS
+
+```json
+{
+  "calendarProvider": "ics",
+  "calendarIcsUrl": "https://..."
+}
+```
+
+---
+
+# 開発メモ
+
+## VOICEVOX
+
+VOICEVOX Engine を別途起動してください。
+
+デフォルト:
+http://localhost:50021
+
+## Ollama
+
+ローカルLLMは Ollama 経由で利用します。
+
+---
+
+# Runtime Files
+
+以下は runtime state / cache のため
+Git 管理対象外です。
+
+```txt
+memory/recent_phrases.json
+settings.local.json
+.env
+```
+
+---
+
+# 今後やりたいこと
+
+- ESP32移植
+- スピーカーデバイス化
+- 季節・天気連動
+- memory整理最適化
+- 発話queue制御
+- モデル切り替え強化
+- UI改善
+
+---
+
+# 注意
+
+.env や memory フォルダ内の個人データ、
+settings.local.json は GitHub にアップロードしないでください。
