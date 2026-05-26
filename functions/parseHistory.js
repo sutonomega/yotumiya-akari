@@ -1,4 +1,4 @@
-function createNgrams(text, n = 3) {
+function createNgrams(text, n = 2) {
   const normalized = String(text || "").trim();
 
   // =========================
@@ -108,7 +108,7 @@ function shouldKeepAssistantMessage(content, previousAssistantMessages) {
   // repetition
   // =========================
 
-  if (repetitionScore >= 0.9) {
+  if (repetitionScore >= 0.6) {
     return false;
   }
 
