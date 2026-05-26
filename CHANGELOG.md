@@ -2,25 +2,70 @@
 
 ## Planned
 
-### Core Architecture
+- ESP32 device integration
+- Seasonal / weather-linked behavior improvements
+- WebUI monitoring improvements
 
-- LLM provider abstraction
-- Multi-stage response pipeline
-- State/save management cleanup
-- Log system cleanup
+# v0.2.0 - 2026-05-26
 
-### Memory System
+## Added
 
+- Google Calendar provider
+- ICS calendar provider
+- Calendar timeout handling
+- Calendar private event filtering
+- X auto posting support
+- dotenv support
+- Runtime fallback handling
+- Conversation category classification
+- Recent expression suppression
 - Memory retrieval system
 - Memory importance management
 - Nightly personality maintenance process
-
-### Personality & Chat
-
 - Speech queue control
-- Conversation category classification
-- Recent expression suppression
+- Long-term memory re-summary system
+- Lifestyle-based time signal system
+
+## Changed
+
+- Improve Japanese short phrase similarity filtering
+- Improve runtime stability
+- Improve repetition suppression behavior
+- Improve personality drift suppression
+- Improve state prompt handling
+- Improve calendar provider robustness
+- Improve prompt filtering behavior
+- Improve response pipeline stability
+- Improve 12-hour time formatting
+- Improve model switching behavior
+
+## Refactored
+
+- LLM provider abstraction
+- Multi-stage response pipeline
+- Environment state integration
+- Calendar provider abstraction
+- State/save management cleanup
+- Log system cleanup
 - Personality rule distillation system
+- Runtime cache management
+- Calendar provider architecture
+
+## Fixed
+
+- finalReply generation issue
+- Calendar timeout crash risk
+- Invalid calendar URL handling
+- Prompt filtering issue
+- Runtime cache handling
+- Similar phrase accumulation issue
+- Personality repetition issue
+
+## Notes
+
+- Google Calendar / ICS integration is now supported.
+- Runtime cache files are excluded from Git management.
+- Long-running runtime behavior is under continuous observation.
 
 # v0.1.0 - 2026-05-24
 

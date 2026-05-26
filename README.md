@@ -12,12 +12,16 @@ Discord Bot と WebUI を中心に動作し、
 - ローカルLLMで動作
 - 時報システム
 - 長期記憶
+- Google Calendar / ICS連携
+- private予定 filtering
+- phrase repetition suppression
 - VOICEVOX対応
 - WebUI
 - prompts分離構成
 - function分離によるモジュール設計
 - settings.local.json対応
 - 軽量構成を意識した設計
+- runtime error handling
 
 ---
 
@@ -30,6 +34,8 @@ Discord Bot と WebUI を中心に動作し、
 - React
 - Ollama
 - VOICEVOX
+- Google Calendar API
+- dotenv
 - qwen3:1.7b
 
 ---
@@ -50,6 +56,14 @@ WebUI経由で自然な会話を行います。
 会話履歴から重要な内容を抽出し、
 long_memory.txtへ保存します。
 
+## カレンダー連携
+
+Google Calendar / ICS から予定を取得し、
+現在の予定や今後の予定を発話へ反映します。
+
+private keyword に一致する予定は
+promptへ表示しません。
+
 ## 音声合成
 
 VOICEVOXによる音声生成に対応しています。
@@ -65,35 +79,22 @@ prompts/ 配下で、
 
 ```txt
 functions/
-├ compressHistory.js
-├ generateMessage.js
-├ getCurrentState.js
-├ loadJson.js
-├ loadSettings.js
-├ logger.js
-├ longMemory.js
-├ parseHistory.js
-├ processHistory.js
-├ saveHistory.js
-├ saveMood.js
-├ savePostCandidate.js
-├ saveTalkStats.js
-├ scheduler.js
-├ speak.js
-├ summary.js
-├ updateMood.js
-└ updateTalkStats.js
-
 prompts/
-├ memory_summary.txt
-├ summary.txt
-├ system.txt
-└ time_signal.txt
-
 config/
-├ settings.json
-├ settings.local.json
-└ settings.example.json
+memory/
+webui/
+```
+
+---
+
+# .env
+
+秘密情報は .env で管理します。
+
+例:
+
+```env
+DISCORD_TOKEN=xxxxxxxx
 ```
 
 ---
@@ -115,6 +116,28 @@ settings.local.json で上書きできます。
 
 ---
 
+# Calendar設定
+
+## Google Calendar
+
+```json
+{
+  "calendarProvider": "google",
+  "googleCalendarUrl": "https://www.googleapis.com/calendar/v3/calendars/..."
+}
+```
+
+## ICS
+
+```json
+{
+  "calendarProvider": "ics",
+  "calendarIcsUrl": "https://..."
+}
+```
+
+---
+
 # 開発メモ
 
 ## VOICEVOX
@@ -127,6 +150,19 @@ http://localhost:50021
 ## Ollama
 
 ローカルLLMは Ollama 経由で利用します。
+
+---
+
+# Runtime Files
+
+以下は runtime state / cache のため
+Git 管理対象外です。
+
+```txt
+memory/recent_phrases.json
+settings.local.json
+.env
+```
 
 ---
 
