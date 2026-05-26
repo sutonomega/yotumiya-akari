@@ -137,9 +137,15 @@ function parseHistory(settings, historyText) {
       // =========================
 
       if (line.startsWith(`${settings.userName}:`)) {
+        const content = line.replace(`${settings.userName}:`, "").trim();
+
+        if (!content) {
+          continue;
+        }
+
         messages.push({
           role: "user",
-          content: line.replace(`${settings.userName}:`, "").trim(),
+          content,
         });
         continue;
       }

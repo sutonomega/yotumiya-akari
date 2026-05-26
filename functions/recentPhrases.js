@@ -49,6 +49,22 @@ function repetitionPenalty(settings, candidate) {
   let penalty = 0;
 
   for (const phrase of phrases) {
+    // ========================================
+    // short phrase ignore
+    // ========================================
+
+    if (phrase.length < 12) {
+      continue;
+    }
+
+    // ========================================
+    // protected ai name
+    // ========================================
+
+    if (phrase.includes(settings.aiName)) {
+      continue;
+    }
+
     for (const previous of recent.slice(-30)) {
       if (phrase === previous || similarity(phrase, previous) >= 0.72) {
         penalty += 1;
@@ -62,18 +78,19 @@ function repetitionPenalty(settings, candidate) {
 function suppressRecentPhrases(settings, message) {
   const penalty = repetitionPenalty(settings, message);
 
+  // ========================================
+  // no penalty
+  // ========================================
+
   if (penalty === 0) {
     return message;
   }
 
-  const phrases = splitPhrases(message);
-  const recent = new Set((loadRecentPhrases(settings).phrases || []).slice(-30));
+  // ========================================
+  // do not destroy message
+  // ========================================
 
-  for (const phrase of phrases) {
-    if (recent.has(phrase)) {
-      return message.replace(phrase, "").trim();
-    }
-  }
+  console.log("[RECENT PHRASE SUPPRESSED]", message);
 
   return message;
 }
