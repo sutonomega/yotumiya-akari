@@ -28,7 +28,7 @@ async function callOllamaChat(settings, messages, model = settings.chatModel) {
   const content = data?.message?.content;
 
   if (!content) {
-    throw new Error("Ollama response invalid");
+    throw new Error(`Ollama response invalid: ${data?.error || response.status}`);
   }
 
   return stripThinking(content);
@@ -48,6 +48,9 @@ async function callOllamaGenerate(settings, prompt, model) {
   });
 
   const data = await response.json();
+  if (data?.error) {
+    throw new Error(`Ollama generate failed: ${data.error}`);
+  }
   return stripThinking(data?.response || "");
 }
 

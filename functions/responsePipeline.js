@@ -5,6 +5,19 @@ const {
 const { retrieveMemory } = require("./memoryRetrieval");
 
 async function analyzeInput({ settings, userMessage, currentState }) {
+  // ========================================
+  // disabled
+  // ========================================
+
+  if (!settings.enableAnalyzeInput) {
+    return {
+      category: "casual",
+      categoryInstruction: "",
+      memories: [],
+      timeText: currentState.timeText,
+    };
+  }
+
   const category = classifyConversation(userMessage, currentState);
   const memories = retrieveMemory(
     settings,
@@ -23,7 +36,21 @@ async function analyzeInput({ settings, userMessage, currentState }) {
   };
 }
 
-async function buildBaseReply({ callModel, messages, analysis, mode }) {
+async function buildBaseReply({
+  callModel,
+  messages,
+  analysis,
+  mode,
+  settings,
+}) {
+  // ========================================
+  // disabled
+  // ========================================
+
+  if (!settings.enableBaseReply) {
+    return "";
+  }
+
   const analysisText = [
     `conversation category: ${analysis.category}`,
     `instruction: ${analysis.categoryInstruction}`,
@@ -33,24 +60,44 @@ async function buildBaseReply({ callModel, messages, analysis, mode }) {
       : "relevant memories: none",
   ].join("\n");
 
-  return callModel([
+  const requestMessages = [
     ...messages,
     {
       role: "system",
-      content: `Analysis for this turn:\n${analysisText}`,
+      content:
+        `Analysis for this turn:\n${analysisText}\n\n` +
+        "Output rules:\n" +
+        "- Return only the final post text.\n" +
+        "- Do not output analysis, explanation, labels, markdown, or bullet points.\n" +
+        "- Do not include 'Analysis', 'Conversation Category', 'Mode', or 'Relevant Memories'.",
     },
-  ]);
+  ];
+
+  // debug
+  // console.log("[FINAL REQUEST]", JSON.stringify(requestMessages, null, 2));
+
+  return callModel(requestMessages);
 }
 
 async function personalizeReply({ callModel, baseReply, settings, mode }) {
+  // ========================================
+  // disabled
+  // ========================================
+
+  if (!settings.enablePersonalizeReply) {
+    return baseReply;
+  }
+
   return callModel([
     {
       role: "system",
       content:
-        "下書きを自然な日本語に整えてください。" +
+        "下書きをX投稿用の自然な日本語に整えてください。" +
+        "投稿本文だけを出力してください。" +
+        "説明、分析、箇条書き、Markdownは出力しないでください。" +
+        "Analysis、Conversation Category、Mode、Relevant Memoriesという語を出力しないでください。" +
         "短く自然にしてください。" +
-        "名前だけを出力しないでください。" +
-        "説明は不要です。",
+        "名前だけを出力しないでください。",
     },
     {
       role: "user",
@@ -67,13 +114,20 @@ async function runResponsePipeline({
   mode,
   callModel,
 }) {
-  const analysis = await analyzeInput({ settings, userMessage, currentState });
+  const analysis = await analyzeInput({
+    settings,
+    userMessage,
+    currentState,
+  });
+
   const baseReply = await buildBaseReply({
     callModel,
     messages,
     analysis,
     mode,
+    settings,
   });
+
   const finalReply = await personalizeReply({
     callModel,
     baseReply,

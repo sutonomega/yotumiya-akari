@@ -16,9 +16,9 @@
 
   "channelId": "1506657409622610083",
 
-  "chatModel": "qwen3:4b",
-  "memoryModel": "qwen3:4b",
-  "summaryModel": "qwen3:4b",
+  "chatModel": "qwen2.5:3b",
+  "memoryModel": "qwen2.5:3b",
+  "summaryModel": "qwen2.5:3b",
 
   "memoryDir": "memory",
 
@@ -36,8 +36,10 @@
   "calendarFetchTimeoutMs": 5000,
   "defaultWeather": "unknown",
 
-  "postTargets": ["discord"],
+  "postTargets": ["x"],
   "postRetryCount": 2,
+  "xDryRun": true,
+  "xMaxLength": 280,
   "xRateLimitPer15Min": 15,
   "enableImageAttachment": false,
 

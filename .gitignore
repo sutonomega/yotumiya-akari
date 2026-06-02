@@ -10,6 +10,8 @@ memory/mood.json
 memory/scheduler.json
 memory/talk_stats.json
 memory/recent_phrases.json
+memory/x_post_state.json
+memory/x_token.json
 
 logs/
 

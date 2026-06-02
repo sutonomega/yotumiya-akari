@@ -1,5 +1,5 @@
 const log = require("./logger");
-const { readState, writeState } = require("./stateStore");
+const { canPostToX, postTweet } = require("./xClient");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -17,54 +17,8 @@ function getTargets(settings) {
   return ["discord"];
 }
 
-function canPostToX(settings, now = new Date()) {
-  const state = readState("x_post_state.json", { postedAt: [] }, settings);
-  const windowMs = 15 * 60 * 1000;
-  const recent = state.postedAt.filter((iso) => now - new Date(iso) < windowMs);
-  const limit = settings.xRateLimitPer15Min || 15;
-  return {
-    allowed: recent.length < limit,
-    recent,
-  };
-}
-
 async function postToX(settings, message) {
-  const token = process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN;
-
-  if (!token) {
-    throw new Error("X_BEARER_TOKEN is required for X posting");
-  }
-
-  const rate = canPostToX(settings);
-  if (!rate.allowed) {
-    throw new Error("X rate limit guard blocked this post");
-  }
-
-  const response = await fetch("https://api.twitter.com/2/tweets", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text: message,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`X post failed: ${response.status} ${await response.text()}`);
-  }
-
-  const state = readState("x_post_state.json", { postedAt: [] }, settings);
-  writeState(
-    "x_post_state.json",
-    {
-      postedAt: [...state.postedAt, new Date().toISOString()].slice(-100),
-    },
-    settings,
-  );
-
-  return response.json();
+  return postTweet({ settings, text: message });
 }
 
 async function withRetry(task, retries = 2, delayMs = 1000) {
