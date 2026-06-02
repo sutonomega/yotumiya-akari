@@ -60,16 +60,20 @@ function buildSystemPrompt(settings, currentState) {
 
   return [
     systemPrompt,
-    `${settings.aiName} profile:\n${aiProfile}`,
-    `${settings.userName} profile:\n${userProfile}`,
-    `current state:\n${composeStatePrompt(currentState, settings)}`,
-    currentState.calendar?.prompt
+    settings.enableAiProfile ? `${settings.aiName} profile:\n${aiProfile}` : "",
+    settings.enableUserProfile
+      ? `${settings.userName} profile:\n${userProfile}`
+      : "",
+    settings.enableCurrentState
+      ? `current state:\n${composeStatePrompt(currentState, settings)}`
+      : "",
+    settings.enableCalendarPrompt && currentState.calendar?.prompt
       ? `calendar:\n${currentState.calendar.prompt}`
       : "",
-    `long memory:\n${longMemory}`,
-    `good examples:\n${goodExamples}`,
-    `bad examples:\n${badExamples}`,
-    conversationRules,
+    settings.enableLongMemory ? `long memory:\n${longMemory}` : "",
+    settings.enableGoodExamples ? `good examples:\n${goodExamples}` : "",
+    settings.enableBadExamples ? `bad examples:\n${badExamples}` : "",
+    settings.enableConversationRules ? conversationRules : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -135,9 +139,9 @@ async function generateMessage({
       mode,
       callModel: (nextMessages) => llm.chat(nextMessages),
     });
-
+    console.log("[BEFORE SUPPRESS]", pipeline.finalReply);
     let message = suppressRecentPhrases(settings, pipeline.finalReply);
-
+    console.log("[AFTER SUPPRESS]", message);
     if (mode === "post") {
       message = `${formatTimeText(state.hour)}\n${message}`;
     }

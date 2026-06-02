@@ -54,6 +54,11 @@ async function processHistory({
     // summary生成
     // =========================
 
+    if (!settings.enableSummary) {
+      console.log("SUMMARY DISABLED");
+      return;
+    }
+
     console.log("SUMMARY START");
 
     const summary = await generateSummary(settings, historyLog);
@@ -65,6 +70,11 @@ async function processHistory({
     // =========================
     // 長期記憶生成
     // =========================
+
+    if (!settings.enableLongMemoryGeneration) {
+      console.log("LONG MEMORY DISABLED");
+      return;
+    }
 
     console.log("LONG MEMORY START");
 
