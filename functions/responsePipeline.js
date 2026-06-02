@@ -4,6 +4,22 @@ const {
 } = require("./conversationCategory");
 const { retrieveMemory } = require("./memoryRetrieval");
 
+function sanitizeModelText(text) {
+  return String(text || "")
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block.replace(/```(?:\w+)?/g, "").replace(/```/g, ""),
+    )
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return !/^(analysis|conversation category|mode|relevant memories|draft|final)\s*[:：]/i.test(
+        trimmed,
+      );
+    })
+    .join("\n")
+    .trim();
+}
+
 async function analyzeInput({ settings, userMessage, currentState }) {
   // ========================================
   // disabled
@@ -76,7 +92,7 @@ async function buildBaseReply({
   // debug
   // console.log("[FINAL REQUEST]", JSON.stringify(requestMessages, null, 2));
 
-  return callModel(requestMessages);
+  return sanitizeModelText(await callModel(requestMessages));
 }
 
 async function personalizeReply({ callModel, baseReply, settings, mode }) {
@@ -85,10 +101,10 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
   // ========================================
 
   if (!settings.enablePersonalizeReply) {
-    return baseReply;
+    return sanitizeModelText(baseReply);
   }
 
-  return callModel([
+  return sanitizeModelText(await callModel([
     {
       role: "system",
       content:
@@ -103,7 +119,7 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
       role: "user",
       content: `mode: ${mode}\nDraft:\n${baseReply}`,
     },
-  ]);
+  ]));
 }
 
 async function runResponsePipeline({
