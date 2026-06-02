@@ -7,6 +7,7 @@
     "start": "node bot.js",
     "start:x": "node -e \"process.env.BOT_TARGET='x'; require('./bot')\"",
     "start:discord": "node -e \"process.env.BOT_TARGET='discord'; require('./bot')\"",
+    "test:time-post": "node scripts/test-time-post.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
