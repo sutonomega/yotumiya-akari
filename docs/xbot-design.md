@@ -162,6 +162,173 @@ X へ投稿するには、投稿対象アカウントの user context token が�
 
 Bearer token だけの app-only 認証では投稿できない可能性が高いため、OAuth 2.0 Authorization Code Flow with PKCE を前提にする。
 
+## X API Setup Steps
+
+X API の設定は X Developer Portal / Developer Console で行う。
+
+参考:
+
+- [Developer Console](https://docs.x.com/resources/fundamentals/developer-portal)
+- [Apps](https://docs.x.com/fundamentals/developer-apps)
+- [OAuth 2.0 Authorization Code Flow with PKCE](https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code)
+
+### 1. Developer Account を用意する
+
+1. X Developer Portal にログインする。
+2. Developer Account を作成、または既存の developer account を使う。
+3. 利用中の plan で `POST /2/tweets` が使えるか確認する。
+
+注意:
+
+- X API の plan / 権限は変更されることがある。
+- 投稿 API が使えない plan の場合、実装しても `403` などで失敗する。
+
+### 2. Project / App を作る
+
+1. Developer Portal で Project を作成する。
+2. Project 内に App を作成する。
+3. App 名は例として `Yotumiya Akari Bot` などにする。
+
+この App が X API へアクセスする単位になる。
+
+### 3. App Permissions を設定する
+
+App の設定で権限を投稿可能な状態にする。
+
+必要な権限:
+
+- Read
+- Write
+
+Tweet 投稿には write 権限が必要である。
+
+### 4. OAuth 2.0 を有効化する
+
+App の User authentication settings で OAuth 2.0 を有効にする。
+
+推奨設定:
+
+- App type: Web App / Automated App / Bot 用途に合うもの
+- OAuth 2.0: enabled
+- Callback URL: `http://localhost:3000/x/callback`
+- Website URL: 任意の管理用URL、または公開している project / profile URL
+
+callback URL は実装側の `X_CALLBACK_URL` と完全一致させる。
+
+### 5. Scopes を設定する
+
+OAuth 2.0 の scopes は次を使う。
+
+```txt
+tweet.read
+tweet.write
+users.read
+offline.access
+```
+
+`offline.access` を付けると refresh token を受け取れる。定期実行 bot では access token の期限切れに備える必要があるため、refresh token を使う前提にする。
+
+### 6. Client ID / Client Secret を取得する
+
+App の Keys and tokens / OAuth 2.0 credentials から次を取得する。
+
+- Client ID
+- Client Secret
+
+`.env` に保存する。
+
+```env
+X_CLIENT_ID=取得したClient ID
+X_CLIENT_SECRET=取得したClient Secret
+X_CALLBACK_URL=http://localhost:3000/x/callback
+X_TOKEN_PATH=memory/x_token.json
+```
+
+Client Secret は Git に入れない。
+
+### 7. 初回認証を行う
+
+実装予定の `scripts/x-auth.js` で初回認証を行う。
+
+想定フロー:
+
+1. `npm run x:auth` を実行する。
+2. script が authorization URL を表示する。
+3. ブラウザで authorization URL を開く。
+4. 投稿する X アカウントでログインし、App を許可する。
+5. callback URL に redirect される。
+6. callback URL の `code` を script に渡す、または local callback server が受け取る。
+7. script が access token / refresh token を取得する。
+8. `memory/x_token.json` に token を保存する。
+
+保存される token file のイメージ:
+
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "...",
+  "expiresAt": "2026-06-02T12:00:00.000Z"
+}
+```
+
+`memory/x_token.json` は `.gitignore` 対象にする。
+
+### 8. dry-run で確認する
+
+最初は実投稿せずに確認する。
+
+```env
+BOT_TARGET=x
+```
+
+```json
+{
+  "xDryRun": true
+}
+```
+
+確認すること:
+
+- scheduler が投稿タイミングを検出する。
+- message が生成される。
+- X投稿予定の text がログに出る。
+- 280文字制限に収まっている。
+- `memory/x_post_state.json` が更新される。
+
+### 9. 実投稿を有効化する
+
+dry-run が問題なければ実投稿に切り替える。
+
+```json
+{
+  "xDryRun": false
+}
+```
+
+実投稿後に確認すること:
+
+- X に投稿が表示される。
+- `memory/x_post_state.json` に投稿履歴が残る。
+- 同じ時間帯に重複投稿されない。
+- token 期限切れ時に refresh できる。
+
+## API Setup Checklist
+
+- [ ] X Developer Account がある。
+- [ ] X Project / App を作成した。
+- [ ] App permissions が Read and Write になっている。
+- [ ] OAuth 2.0 が enabled になっている。
+- [ ] Callback URL と `X_CALLBACK_URL` が一致している。
+- [ ] `tweet.read` scope を設定した。
+- [ ] `tweet.write` scope を設定した。
+- [ ] `users.read` scope を設定した。
+- [ ] `offline.access` scope を設定した。
+- [ ] Client ID を `.env` に入れた。
+- [ ] Client Secret を `.env` に入れた。
+- [ ] 初回認証で `memory/x_token.json` を作成した。
+- [ ] dry-run で定時投稿 flow を確認した。
+- [ ] 実投稿で `POST /2/tweets` が成功した。
+
 ## Environment Variables
 
 `.env` に置く候補:
