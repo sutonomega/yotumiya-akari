@@ -36,8 +36,10 @@
   "calendarFetchTimeoutMs": 5000,
   "defaultWeather": "unknown",
 
-  "postTargets": ["discord"],
+  "postTargets": ["x"],
   "postRetryCount": 2,
+  "xDryRun": true,
+  "xMaxLength": 280,
   "xRateLimitPer15Min": 15,
   "enableImageAttachment": false,
 

@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node bot.js",
+    "start:x": "node -e \"process.env.BOT_TARGET='x'; require('./bot')\"",
+    "start:discord": "node -e \"process.env.BOT_TARGET='discord'; require('./bot')\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,7 +17,8 @@
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
     "eslint": "^9.39.4",
