@@ -64,12 +64,17 @@ async function buildBaseReply({
     ...messages,
     {
       role: "system",
-      content: `Analysis for this turn:\n${analysisText}`,
+      content:
+        `Analysis for this turn:\n${analysisText}\n\n` +
+        "Output rules:\n" +
+        "- Return only the final post text.\n" +
+        "- Do not output analysis, explanation, labels, markdown, or bullet points.\n" +
+        "- Do not include 'Analysis', 'Conversation Category', 'Mode', or 'Relevant Memories'.",
     },
   ];
 
   // debug
-  console.log("[FINAL REQUEST]", JSON.stringify(requestMessages, null, 2));
+  // console.log("[FINAL REQUEST]", JSON.stringify(requestMessages, null, 2));
 
   return callModel(requestMessages);
 }
@@ -87,10 +92,12 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
     {
       role: "system",
       content:
-        "下書きを自然な日本語に整えてください。" +
+        "下書きをX投稿用の自然な日本語に整えてください。" +
+        "投稿本文だけを出力してください。" +
+        "説明、分析、箇条書き、Markdownは出力しないでください。" +
+        "Analysis、Conversation Category、Mode、Relevant Memoriesという語を出力しないでください。" +
         "短く自然にしてください。" +
-        "名前だけを出力しないでください。" +
-        "説明は不要です。",
+        "名前だけを出力しないでください。",
     },
     {
       role: "user",
