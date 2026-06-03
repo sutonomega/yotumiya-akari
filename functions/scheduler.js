@@ -7,13 +7,18 @@ const { writeState } = require("./stateStore");
 async function checkScheduler() {
   log.system("scheduler check");
 
-  const { settings, now, hour, minute, schedulerData } = getCurrentState();
+  const currentState = getCurrentState();
+  const { settings, now, hour, minute, schedulerData } = currentState;
 
   if (shouldRunNightly(settings, now)) {
     await runNightlyProcess(settings, now);
   }
 
-  const postSlot = shouldPostAt({ hour, minute, schedulerData });
+  const postSlot = shouldPostAt({
+    currentState,
+    settings,
+    schedulerData,
+  });
 
   if (!postSlot) {
     return null;
@@ -26,6 +31,7 @@ async function checkScheduler() {
     hour,
     minute,
     kind: postSlot.kind,
+    scheduleMode: settings.postScheduleMode || "hourly",
   });
 
   return {

@@ -1,47 +1,102 @@
-function getLifeRhythmSlot(hour) {
+const DEFAULT_HOURLY_POST_HOURS = Object.freeze([
+  0,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+]);
+const DEFAULT_DAILY_POST_HOURS = Object.freeze([6, 12, 18, 22]);
+
+function normalizeHours(hours, fallback) {
+  if (!Array.isArray(hours)) {
+    return fallback;
+  }
+
+  const normalized = hours
+    .map((hour) => Number(hour))
+    .filter((hour) => Number.isInteger(hour) && hour >= 0 && hour <= 23);
+
+  return normalized.length > 0 ? [...new Set(normalized)] : fallback;
+}
+
+function getScheduleHours(settings = {}) {
+  if (settings.postScheduleMode === "daily4") {
+    return normalizeHours(settings.dailyPostHours, DEFAULT_DAILY_POST_HOURS);
+  }
+
+  if (settings.postScheduleMode === "custom") {
+    return normalizeHours(settings.postScheduleHours, DEFAULT_HOURLY_POST_HOURS);
+  }
+
+  return normalizeHours(settings.hourlyPostHours, DEFAULT_HOURLY_POST_HOURS);
+}
+
+function getLifeRhythmSlot(currentState = {}) {
+  const hour = currentState.hour;
+  const timeText = currentState.timeText || "night";
+
   if (hour === 6) {
     return {
       mode: "post",
       kind: "good_morning",
-      prompt: "6時。おはようの挨拶と、朝の生活感を短く入れる。",
+      timeText,
+      prompt: "",
     };
   }
 
-  if (hour >= 7 && hour <= 23) {
-    return {
-      mode: "post",
-      kind: "hourly",
-      prompt: `${hour}時の時報。時間帯に合う生活感を一言だけ添える。`,
-    };
-  }
-
-  if (hour === 0) {
+  if (hour === 0 || hour === 22 || hour === 23) {
     return {
       mode: "post",
       kind: "good_night",
-      prompt: "0時。おやすみ前の静かな一言にする。",
+      timeText,
+      prompt: "",
     };
   }
 
   return {
-    mode: "sleep",
-    kind: "deep_night_stop",
-    prompt: "深夜帯のため自動投稿を停止する。",
+    mode: "post",
+    kind: timeText + "_time_signal",
+    timeText,
+    prompt: "",
   };
 }
 
-function shouldPostAt({ hour, minute, schedulerData }) {
-  if (minute !== 0) {
+function shouldPostAt({ currentState, settings = {}, schedulerData }) {
+  const hour = currentState.hour;
+  const minute = currentState.minute;
+  const postMinute = Number.isInteger(settings.postScheduleMinute)
+    ? settings.postScheduleMinute
+    : 0;
+
+  if (minute !== postMinute) {
     return null;
   }
 
-  const slot = getLifeRhythmSlot(hour);
-
-  if (slot.mode === "sleep") {
+  if (!getScheduleHours(settings).includes(hour)) {
     return null;
   }
 
-  const currentSlot = `${hour}:${minute}:${slot.kind}`;
+  const slot = getLifeRhythmSlot(currentState);
+  const currentSlot = [
+    settings.postScheduleMode || "hourly",
+    hour,
+    minute,
+    slot.kind,
+  ].join(":");
 
   if (schedulerData.lastPostTime === currentSlot) {
     return null;
@@ -55,5 +110,6 @@ function shouldPostAt({ hour, minute, schedulerData }) {
 
 module.exports = {
   getLifeRhythmSlot,
+  getScheduleHours,
   shouldPostAt,
 };

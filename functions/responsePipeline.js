@@ -1,8 +1,27 @@
+const fs = require("fs");
+const path = require("path");
+
 const {
   categoryInstruction,
   classifyConversation,
 } = require("./conversationCategory");
 const { retrieveMemory } = require("./memoryRetrieval");
+
+function loadPrompt(fileName) {
+  const filePath = path.join(process.cwd(), "prompts", fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return "";
+  }
+
+  return fs.readFileSync(filePath, "utf-8");
+}
+
+function renderTemplate(template, values) {
+  return Object.entries(values).reduce((text, [key, value]) => {
+    return text.replaceAll(`{{${key}}}`, String(value));
+  }, template);
+}
 
 function sanitizeModelText(text) {
   return String(text || "")
@@ -80,12 +99,9 @@ async function buildBaseReply({
     ...messages,
     {
       role: "system",
-      content:
-        `Analysis for this turn:\n${analysisText}\n\n` +
-        "Output rules:\n" +
-        "- Return only the final post text.\n" +
-        "- Do not output analysis, explanation, labels, markdown, or bullet points.\n" +
-        "- Do not include 'Analysis', 'Conversation Category', 'Mode', or 'Relevant Memories'.",
+      content: renderTemplate(loadPrompt("response_base_rules.txt"), {
+        analysisText,
+      }),
     },
   ];
 
@@ -107,13 +123,7 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
   return sanitizeModelText(await callModel([
     {
       role: "system",
-      content:
-        "下書きをX投稿用の自然な日本語に整えてください。" +
-        "投稿本文だけを出力してください。" +
-        "説明、分析、箇条書き、Markdownは出力しないでください。" +
-        "Analysis、Conversation Category、Mode、Relevant Memoriesという語を出力しないでください。" +
-        "短く自然にしてください。" +
-        "名前だけを出力しないでください。",
+      content: loadPrompt("response_personalize.txt"),
     },
     {
       role: "user",

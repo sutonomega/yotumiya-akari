@@ -138,6 +138,16 @@ settings.local.json で上書きできます。
 
 ---
 
+# ドキュメント
+
+- [現在の設計](docs/architecture.md)
+- [今後やること](docs/roadmap.md)
+- [大きな変更履歴](docs/changelog.md)
+- [思いつきメモ](docs/ideas.md)
+- [X Bot Design](docs/xbot-design.md)
+
+---
+
 # 開発メモ
 
 ## VOICEVOX

@@ -3,6 +3,42 @@ const path = require("path");
 
 const { appendMemoryText } = require("./stateStore");
 
+const DEFAULT_CONFIG = Object.freeze({
+  aiLinePrefixPattern: "^AI:\\s*",
+  shortMaxLength: 80,
+  questionPattern: "[？?]$",
+  styleSignals: {},
+  rules: {},
+});
+
+let cachedConfig = null;
+
+function readPersonalityRulesConfig() {
+  const filePath = path.join(process.cwd(), "config", "personality_rules.json");
+
+  if (!fs.existsSync(filePath)) {
+    return DEFAULT_CONFIG;
+  }
+
+  return {
+    ...DEFAULT_CONFIG,
+    ...JSON.parse(fs.readFileSync(filePath, "utf-8")),
+  };
+}
+
+function loadPersonalityRulesConfig() {
+  if (!cachedConfig) {
+    cachedConfig = readPersonalityRulesConfig();
+  }
+
+  return cachedConfig;
+}
+
+function reloadPersonalityRulesConfig() {
+  cachedConfig = readPersonalityRulesConfig();
+  return cachedConfig;
+}
+
 function readFeedback(settings, fileName) {
   const filePath = path.join(process.cwd(), settings.memoryDir, "feedback", fileName);
 
@@ -13,12 +49,20 @@ function readFeedback(settings, fileName) {
   return fs.readFileSync(filePath, "utf-8");
 }
 
-function extractStyleSignals(text) {
+function extractStyleSignals(text, config = loadPersonalityRulesConfig()) {
+  const aiLinePrefix = new RegExp(config.aiLinePrefixPattern);
+  const questionPattern = new RegExp(config.questionPattern);
+  const gentlePattern = config.styleSignals?.gentle
+    ? new RegExp(config.styleSignals.gentle)
+    : null;
+  const technicalPattern = config.styleSignals?.technical
+    ? new RegExp(config.styleSignals.technical)
+    : null;
   const lines = String(text || "")
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.startsWith("AI:"))
-    .map((line) => line.replace(/^AI:\s*/, ""));
+    .filter((line) => aiLinePrefix.test(line))
+    .map((line) => line.replace(aiLinePrefix, ""));
 
   const signals = {
     short: 0,
@@ -28,56 +72,57 @@ function extractStyleSignals(text) {
   };
 
   for (const line of lines) {
-    if (line.length <= 80) signals.short += 1;
-    if (/[？?]$/.test(line)) signals.question += 1;
-    if (/大丈夫|ゆっくり|そっと|静か|無理/.test(line)) signals.gentle += 1;
-    if (/手順|実装|確認|原因|修正/.test(line)) signals.technical += 1;
+    if (line.length <= config.shortMaxLength) signals.short += 1;
+    if (questionPattern.test(line)) signals.question += 1;
+    if (gentlePattern?.test(line)) signals.gentle += 1;
+    if (technicalPattern?.test(line)) signals.technical += 1;
   }
 
   return signals;
 }
 
-function buildRules(goodSignals, badSignals) {
+function buildRules(goodSignals, badSignals, config = loadPersonalityRulesConfig()) {
   const rules = [];
 
-  if (goodSignals.short >= badSignals.short) {
-    rules.push("- 返答は短めに保ち、余白のある言い方を優先する。");
+  if (goodSignals.short >= badSignals.short && config.rules.short) {
+    rules.push(config.rules.short);
   }
 
-  if (goodSignals.gentle > 0) {
-    rules.push("- 感情には急いで解決策を押し付けず、静かに受け止める。");
+  if (goodSignals.gentle > 0 && config.rules.gentle) {
+    rules.push(config.rules.gentle);
   }
 
-  if (goodSignals.technical > 0) {
-    rules.push("- 技術相談では結論、手順、確認方法の順で整理する。");
+  if (goodSignals.technical > 0 && config.rules.technical) {
+    rules.push(config.rules.technical);
   }
 
-  if (badSignals.question > goodSignals.question) {
-    rules.push("- 質問で返しすぎず、まず一歩進めた返事をする。");
+  if (badSignals.question > goodSignals.question && config.rules.question) {
+    rules.push(config.rules.question);
   }
 
-  return rules.length > 0
-    ? rules
-    : ["- 相手の温度に合わせて、自然で生活感のある返答にする。"];
+  return rules.length > 0 ? rules : [config.rules.default].filter(Boolean);
 }
 
 function distillPersonalityRules(settings) {
+  const config = loadPersonalityRulesConfig();
   const good = readFeedback(settings, "good_examples.txt");
   const bad = readFeedback(settings, "bad_examples.txt");
-  const goodSignals = extractStyleSignals(good);
-  const badSignals = extractStyleSignals(bad);
+  const goodSignals = extractStyleSignals(good, config);
+  const badSignals = extractStyleSignals(bad, config);
 
-  return buildRules(goodSignals, badSignals);
+  return buildRules(goodSignals, badSignals, config);
 }
 
 function savePersonalityRules(settings) {
   const rules = distillPersonalityRules(settings);
-  const text = `\n# distilled rules ${new Date().toISOString()}\n${rules.join("\n")}\n`;
+  const text = "\n# distilled rules " + new Date().toISOString() + "\n" + rules.join("\n") + "\n";
   appendMemoryText("conversation_rules.txt", text, settings);
   return rules;
 }
 
 module.exports = {
   distillPersonalityRules,
+  loadPersonalityRulesConfig,
+  reloadPersonalityRulesConfig,
   savePersonalityRules,
 };

@@ -9,6 +9,7 @@ const { saveRecentPhrases, suppressRecentPhrases } = require("./recentPhrases");
 const { runResponsePipeline } = require("./responsePipeline");
 const { composeStatePrompt } = require("./statePrompt");
 const { formatTimeText } = require("./timeFormatter");
+const { repairTimeSignalPost } = require("./timeSignalSafety");
 
 function loadText(...paths) {
   const filePath = path.join(process.cwd(), ...paths);
@@ -20,22 +21,42 @@ function loadText(...paths) {
   return fs.readFileSync(filePath, "utf-8");
 }
 
+function parsePromptMap(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .reduce((items, line) => {
+      const index = line.indexOf("=");
+
+      if (index === -1) {
+        return items;
+      }
+
+      return {
+        ...items,
+        [line.slice(0, index).trim()]: line.slice(index + 1).trim(),
+      };
+    }, {});
+}
+
 function getTimeDescription(currentState) {
   const hour = currentState.hour;
+  const prompts = parsePromptMap(loadText("prompts", "time_description.txt"));
 
   if (hour === 6) {
-    return "6時。おはようの生活感を少し入れて、朝の空気で返す。";
+    return prompts.hour_6 || "";
   }
 
   if (hour === 0) {
-    return "0時。おやすみ前の静けさを大切にして返す。";
+    return prompts.hour_0 || "";
   }
 
   if (hour >= 7 && hour <= 23) {
-    return `${hour}時の時報。今の時間帯に合う短い一言にする。`;
+    return (prompts.hour_7_23 || "").replaceAll("{hour}", String(hour));
   }
 
-  return "深夜帯。投稿は控えめにし、必要な場合だけ短く返す。";
+  return prompts.default || "";
 }
 
 function buildSystemPrompt(settings, currentState) {
@@ -142,6 +163,33 @@ async function generateMessage({
     console.log("[BEFORE SUPPRESS]", pipeline.finalReply);
     let message = suppressRecentPhrases(settings, pipeline.finalReply);
     console.log("[AFTER SUPPRESS]", message);
+    if (mode === "post") {
+      const repairPrompt = loadText("prompts", "time_signal_repair.txt");
+      const repair = await repairTimeSignalPost({
+        settings,
+        currentState: state,
+        message,
+        regenerate: ({ previousText, reasons }) =>
+          llm.chat([
+            {
+              role: "system",
+              content: repairPrompt,
+            },
+            {
+              role: "user",
+              content:
+                `timeText: ${state.timeText}\nhour: ${state.hour}\nreasons: ${reasons.join(", ")}\nDraft:\n${previousText}`,
+            },
+          ]),
+      });
+
+      if (repair.fallbackUsed) {
+        console.log("[TIME SIGNAL FALLBACK]", repair.reasons.join(", "));
+      }
+
+      message = repair.message;
+    }
+
     if (mode === "post") {
       message = `${formatTimeText(state.hour)}\n${message}`;
     }

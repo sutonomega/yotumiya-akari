@@ -1,0 +1,9 @@
+{
+  "bannedWords": [
+    "静かな夜",
+    "雨の音",
+    "心が落ち着く",
+    "静かな時間"
+  ],
+  "bannedWordRepeatLimit": 2
+}

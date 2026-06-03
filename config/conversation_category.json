@@ -1,0 +1,36 @@
+{
+  "categories": [
+    "technical",
+    "emotional",
+    "casual",
+    "sleepy",
+    "playful"
+  ],
+  "signals": {
+    "technical": [
+      "コード|実装|エラー|API|bug|deploy|github|node|react|設定",
+      "修正|関数|ファイル|ログ|JSON|provider|scheduler"
+    ],
+    "emotional": [
+      "つらい|悲しい|不安|疲れた|寂しい|泣|しんどい|こわい",
+      "大丈夫|助けて|もう無理|落ち込"
+    ],
+    "sleepy": [
+      "眠い|寝る|おやすみ|深夜|夜更かし|sleep",
+      "朝まで|布団|まぶた"
+    ],
+    "playful": [
+      "笑|www|冗談|遊ぼ|ふふ|haha",
+      "かわいい[ねな！!？?]*$|好きすぎ|ノリ"
+    ]
+  },
+  "instructions": {
+    "technical": "技術相談として、手順と判断理由を短く整理して返す。",
+    "emotional": "感情を受け止めて、急がず穏やかに返す。",
+    "sleepy": "眠気や夜の静けさを尊重して、短く落ち着いた返事にする。",
+    "playful": "軽さと遊び心を少し入れつつ、過剰に崩しすぎない。",
+    "default": "自然な雑談として、相手の文脈に沿って返す。"
+  },
+  "sleepyHourStart": 0,
+  "sleepyHourEnd": 6
+}

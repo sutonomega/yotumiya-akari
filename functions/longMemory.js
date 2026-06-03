@@ -4,6 +4,39 @@ const path = require("path");
 
 const { createLlmProvider } = require("./llmProvider");
 
+const DEFAULT_SAFETY_CONFIG = Object.freeze({
+  bannedWords: [],
+  bannedWordRepeatLimit: 2,
+});
+
+let cachedSafetyConfig = null;
+
+function readLongMemorySafetyConfig() {
+  const filePath = path.join(process.cwd(), "config", "long_memory_safety.json");
+
+  if (!fs.existsSync(filePath)) {
+    return DEFAULT_SAFETY_CONFIG;
+  }
+
+  return {
+    ...DEFAULT_SAFETY_CONFIG,
+    ...JSON.parse(fs.readFileSync(filePath, "utf-8")),
+  };
+}
+
+function loadLongMemorySafetyConfig() {
+  if (!cachedSafetyConfig) {
+    cachedSafetyConfig = readLongMemorySafetyConfig();
+  }
+
+  return cachedSafetyConfig;
+}
+
+function reloadLongMemorySafetyConfig() {
+  cachedSafetyConfig = readLongMemorySafetyConfig();
+  return cachedSafetyConfig;
+}
+
 // =========================
 // 類似記憶判定
 // =========================
@@ -139,7 +172,8 @@ function normalizeLongMemory(settings) {
     // NGワード
     // =========================
 
-    const bannedWords = ["静かな夜", "雨の音", "心が落ち着く", "静かな時間"];
+    const safetyConfig = loadLongMemorySafetyConfig();
+    const bannedWords = safetyConfig.bannedWords || [];
 
     // =========================
     // 正規化
@@ -193,7 +227,7 @@ function normalizeLongMemory(settings) {
       for (const word of bannedWords) {
         const count = (line.match(new RegExp(word, "g")) || []).length;
 
-        if (count >= 2) {
+        if (count >= safetyConfig.bannedWordRepeatLimit) {
           skip = true;
 
           break;
@@ -281,6 +315,10 @@ async function saveLongMemory(settings, memoryText) {
 
 module.exports = {
   generateLongMemory,
+
+  loadLongMemorySafetyConfig,
+
+  reloadLongMemorySafetyConfig,
 
   saveLongMemory,
 

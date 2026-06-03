@@ -1,4 +1,23 @@
+# Changelog
+
+Yorumiya AI の大きな変更履歴です。
+細かい作業メモではなく、設計や運用に影響する変更を中心に残します。
+
 # Unreleased
+
+## Added
+
+- Time signal safety pipeline with danger-word detection, regeneration, random fallback, and fallback logging
+- Configurable post schedule modes: `hourly`, `daily4`, and `custom`
+- External config files for conversation category signals, personality rule signals, long-memory safety, and time-signal safety
+- Prompt files for response pipeline base rules and personalization rules
+
+## Changed
+
+- Time-band handling now reuses `getCurrentState().timeText` instead of duplicating hour-based classification in scheduler-related logic
+- `lifeRhythm.js` now controls eligible posting hours by settings while the scheduler still checks once per minute and fires on the configured minute, defaulting to minute 0
+- Time signal generation now separates normal prompt, repair prompt, and fallback dictionary
+- Config loaders now cache JSON after first read and expose reload helpers for explicit refresh
 
 ## Planned
 

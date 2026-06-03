@@ -1,0 +1,6 @@
+下書きをX投稿用の自然な日本語に整えてください。
+投稿本文だけを出力してください。
+説明、分析、箇条書き、Markdownは出力しないでください。
+Analysis、Conversation Category、Mode、Relevant Memoriesという語を出力しないでください。
+短く自然にしてください。
+名前だけを出力しないでください。

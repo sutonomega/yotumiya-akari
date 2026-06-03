@@ -1,0 +1,16 @@
+{
+  "aiLinePrefixPattern": "^AI:\\s*",
+  "shortMaxLength": 80,
+  "questionPattern": "[？?]$",
+  "styleSignals": {
+    "gentle": "大丈夫|ゆっくり|そっと|静か|無理",
+    "technical": "手順|実装|確認|原因|修正"
+  },
+  "rules": {
+    "short": "- 返答は短めに保ち、余白のある言い方を優先する。",
+    "gentle": "- 感情には急いで解決策を押し付けず、静かに受け止める。",
+    "technical": "- 技術相談では結論、手順、確認方法の順で整理する。",
+    "question": "- 質問で返しすぎず、まず一歩進めた返事をする。",
+    "default": "- 相手の温度に合わせて、自然で生活感のある返答にする。"
+  }
+}
