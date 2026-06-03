@@ -16,6 +16,7 @@ memory/x_token.json
 logs/
 
 *.log
+test/log/time-post.txt
 
 public/*.wav
 
