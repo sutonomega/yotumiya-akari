@@ -1,0 +1,7 @@
+Analysis for this turn:
+{{analysisText}}
+
+Output rules:
+- Return only the final post text.
+- Do not output analysis, explanation, labels, markdown, or bullet points.
+- Do not include 'Analysis', 'Conversation Category', 'Mode', or 'Relevant Memories'.
