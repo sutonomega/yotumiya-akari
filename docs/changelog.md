@@ -5,12 +5,23 @@ Yorumiya AI の大きな変更履歴です。
 
 # Unreleased
 
+## Planned
+
+- ESP32 device integration
+- Seasonal / weather-linked behavior improvements
+- WebUI monitoring improvements
+
+# v0.3.0 - 2026-06-03
+
 ## Added
 
+- X auto posting support with OAuth1 client setup
 - Time signal safety pipeline with danger-word detection, regeneration, random fallback, and fallback logging
 - Configurable post schedule modes: `hourly`, `daily4`, and `custom`
 - External config files for conversation category signals, personality rule signals, long-memory safety, and time-signal safety
 - Prompt files for response pipeline base rules and personalization rules
+- Time post dry-run script for local verification
+- Architecture, roadmap, changelog, and ideas docs
 
 ## Changed
 
@@ -18,12 +29,31 @@ Yorumiya AI の大きな変更履歴です。
 - `lifeRhythm.js` now controls eligible posting hours by settings while the scheduler still checks once per minute and fires on the configured minute, defaulting to minute 0
 - Time signal generation now separates normal prompt, repair prompt, and fallback dictionary
 - Config loaders now cache JSON after first read and expose reload helpers for explicit refresh
+- Response pipeline prompts are now loaded from `prompts/` instead of being embedded directly in code
+- `CHANGELOG.md` moved to `docs/changelog.md`
 
-## Planned
+## Refactored
 
-- ESP32 device integration
-- Seasonal / weather-linked behavior improvements
-- WebUI monitoring improvements
+- X bot and Discord bot startup/posting flow separation
+- Conversation category signals and instructions moved to `config/conversation_category.json`
+- Personality rule signals and output rules moved to `config/personality_rules.json`
+- Long-memory safety words moved to `config/long_memory_safety.json`
+- Time signal safety checks moved to `functions/timeSignalSafety.js` and `config/time_signal_safety.json`
+
+## Fixed
+
+- Suppress accidental Analysis / Conversation Category / Mode / Relevant Memories output in generated posts
+- Detect time duplication inside time signal body before posting
+- Regenerate or fallback when generated time signal text mismatches the current time band
+- Keep recent phrase suppression from damaging generated text
+- Improve Ollama response handling and model switching stability
+
+## Notes
+
+- Use `postScheduleMode: "daily4"` to reduce SNS posting volume
+- Use `postScheduleMode: "hourly"` for ESP32 or device-style hourly time signal output
+- Time signal fallback events are recorded in `memory/time_signal_fallbacks.json`
+- Cached JSON config changes require bot restart or an explicit reload helper call
 
 # v0.2.0 - 2026-05-26
 
