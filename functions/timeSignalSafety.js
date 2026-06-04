@@ -8,6 +8,7 @@ const DEFAULT_SAFETY_CONFIG = {
   fallbackLogLimit: 100,
   commonDangerTerms: [],
   concreteTerms: [],
+  unknownWeatherTerms: [],
   timeBands: {},
   defaultFallback: "",
 };
@@ -52,6 +53,11 @@ function timeBandConfig(config, currentState) {
   return config.timeBands?.[timeBand(currentState)] || { fallback: [], blocked: [] };
 }
 
+function isWeatherUnknown(currentState = {}) {
+  const summary = currentState.weather?.summary;
+  return !summary || summary === "unknown";
+}
+
 function validateTimeSignalText(text, currentState = {}, config = loadSafetyConfig()) {
   const body = String(text || "").trim();
   const reasons = [];
@@ -85,6 +91,13 @@ function validateTimeSignalText(text, currentState = {}, config = loadSafetyConf
   const blocked = includesAny(body, band.blocked);
   if (blocked) {
     reasons.push(`time_mismatch:${blocked}`);
+  }
+
+  const weather = isWeatherUnknown(currentState)
+    ? includesAny(body, config.unknownWeatherTerms)
+    : null;
+  if (weather) {
+    reasons.push(`weather_unknown:${weather}`);
   }
 
   if (!includesAny(body, config.concreteTerms)) {
@@ -186,6 +199,7 @@ module.exports = {
   reloadSafetyConfig,
   pickFallback,
   repairTimeSignalPost,
+  isWeatherUnknown,
   timeBand,
   validateTimeSignalText,
 };

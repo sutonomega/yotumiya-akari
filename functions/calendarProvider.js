@@ -1,6 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 
+function buildGoogleCalendarUrl(settings, now = new Date()) {
+  const url = new URL(settings.googleCalendarUrl);
+  const endedWindowMs = (settings.calendarEndedWindowMinutes || 0) * 60 * 1000;
+  const upcomingWindowMs = (settings.calendarUpcomingWindowHours || 6) * 60 * 60 * 1000;
+  const timeMin = new Date(now.getTime() - endedWindowMs);
+  const timeMax = new Date(now.getTime() + upcomingWindowMs);
+
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("orderBy", "startTime");
+  url.searchParams.set("timeMin", timeMin.toISOString());
+  url.searchParams.set("timeMax", timeMax.toISOString());
+  url.searchParams.set("maxResults", String(settings.calendarMaxResults || 20));
+
+  return url.toString();
+}
+
 async function fetchWithTimeout(url, timeoutMs = 5000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -137,14 +153,14 @@ async function readIcsEvents(settings) {
   }
 }
 
-async function readGoogleEvents(settings) {
+async function readGoogleEvents(settings, now = new Date()) {
   try {
     if (!settings.googleCalendarUrl) {
       return [];
     }
 
     const response = await fetchWithTimeout(
-      settings.googleCalendarUrl,
+      buildGoogleCalendarUrl(settings, now),
       settings.calendarFetchTimeoutMs,
     );
     const data = await response.json();
@@ -194,6 +210,7 @@ async function getCalendarEvents(settings) {
 
 module.exports = {
   getCalendarEvents,
+  buildGoogleCalendarUrl,
   fetchWithTimeout,
   parseIcsEvents,
   readGoogleEvents,

@@ -31,6 +31,21 @@ Yorumiya の既存機能に対して、機能追加時のデグレを検知す�
 
 ## テスト一覧
 
+### `test/calendarProvider.test.js`
+
+対象:
+
+- `functions/calendarProvider.js`
+
+確認内容:
+
+- Google Calendar API URL に既存 query を保持したまま `singleEvents=true` を付与する
+- `orderBy=startTime` を付与して時系列順取得にする
+- `timeMin` / `timeMax` を付与して、直近終了予定から今後の予定までの範囲に絞る
+- `calendarMaxResults` による取得件数制限を付与する
+- Google Calendar の mock response を予定データへ normalize する
+- 外部 Google API への実通信は行わない
+
 ### `test/conversationCategory.test.js`
 
 対象:
@@ -97,6 +112,8 @@ Yorumiya の既存機能に対して、機能追加時のデグレを検知す�
 - 再生成が安全文を返した場合は fallback しない
 - 再生成関数が例外を出した場合、その理由を記録して fallback する
 - safety 設定の cache と reload が動作する
+- 天候情報が不明な場合、雨・晴れ・曇り・雪・風などの天候断定語を危険として検出する
+- 天候情報が取得済みの場合は、天候語だけを理由に危険扱いしない
 
 ### `test/llmProvider.test.js`
 
@@ -196,6 +213,8 @@ Yorumiya の既存機能に対して、機能追加時のデグレを検知す�
 - memory path の組み立てを確認する
 - state の read / write / update ができる
 - memory file への append ができる
+- 天候情報が不明な場合、state prompt に天候を断定しない制約が入る
+- 天候情報が取得済みの場合、state prompt に不明時の制約を入れない
 
 ### `test/loadSettingsLogger.test.js`
 
