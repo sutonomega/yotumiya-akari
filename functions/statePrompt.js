@@ -1,7 +1,11 @@
 const { formatTimeText } = require("./timeFormatter");
 
+function isWeatherUnknown(weather) {
+  return !weather || !weather.summary || weather.summary === "unknown";
+}
+
 function formatWeather(weather) {
-  if (!weather || weather.summary === "unknown") {
+  if (isWeatherUnknown(weather)) {
     return "不明";
   }
 
@@ -44,6 +48,9 @@ function composeStatePrompt(currentState, settings) {
     `現在時刻: ${formatTimeText(currentState.hour)}`,
     `時間帯: ${currentState.timeText || "不明"}`,
     `天気: ${formatWeather(currentState.weather)}`,
+    isWeatherUnknown(currentState.weather)
+      ? "天候制約: 天候情報が不明なため、天候を断定しない。雨・晴れ・曇り・雪・風・揺れなどを書かない"
+      : "",
     `気分: ${currentState.moodData?.mood || "不明"}`,
     `会話カテゴリ: ${currentState.conversation?.category || "casual"}`,
     `現在の予定: ${formatEventList(currentState.calendar?.currentEvents, settings)}`,
@@ -51,9 +58,11 @@ function composeStatePrompt(currentState, settings) {
     `このあとの予定: ${formatEventList(currentState.calendar?.upcomingEvents, settings)}`,
   ];
 
-  return lines.join("\n");
+  return lines.filter(Boolean).join("\n");
 }
 
 module.exports = {
   composeStatePrompt,
+  formatWeather,
+  isWeatherUnknown,
 };

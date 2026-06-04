@@ -12,6 +12,7 @@ const {
   writeState,
 } = require("../functions/stateStore");
 const { formatTimeText } = require("../functions/timeFormatter");
+const { composeStatePrompt } = require("../functions/statePrompt");
 
 function tempSettings(t) {
   const baseDir = path.join(process.cwd(), "tmp");
@@ -52,4 +53,40 @@ test("stateStore reads, writes, updates, and appends memory files", (t) => {
   appendMemoryText("notes.txt", "hello", settings);
   appendMemoryText("notes.txt", " world", settings);
   assert.equal(fs.readFileSync(path.join(process.cwd(), settings.memoryDir, "notes.txt"), "utf-8"), "hello world");
+});
+
+
+test("composeStatePrompt adds weather grounding when weather is unknown", () => {
+  const prompt = composeStatePrompt(
+    {
+      hour: 9,
+      timeText: "morning",
+      weather: { summary: "unknown" },
+      moodData: { mood: "normal" },
+      conversation: { category: "casual" },
+      calendar: { currentEvents: [], recentlyEndedEvents: [], upcomingEvents: [] },
+    },
+    { calendarPrivateKeywords: [] },
+  );
+
+  assert.ok(prompt.includes("天気: 不明"));
+  assert.ok(prompt.includes("天候情報が不明"));
+  assert.ok(prompt.includes("天候を断定しない"));
+});
+
+test("composeStatePrompt omits weather grounding when weather is known", () => {
+  const prompt = composeStatePrompt(
+    {
+      hour: 9,
+      timeText: "morning",
+      weather: { summary: "晴れ", temperature: 20 },
+      moodData: { mood: "normal" },
+      conversation: { category: "casual" },
+      calendar: { currentEvents: [], recentlyEndedEvents: [], upcomingEvents: [] },
+    },
+    { calendarPrivateKeywords: [] },
+  );
+
+  assert.ok(prompt.includes("天気: 晴れ、20度"));
+  assert.equal(prompt.includes("天候情報が不明"), false);
 });

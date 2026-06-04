@@ -16,6 +16,7 @@ const safetyConfig = {
   fallbackLogLimit: 10,
   commonDangerTerms: ["Analysis", "静けさ"],
   concreteTerms: ["カーテン", "机", "カップ", "台所"],
+  unknownWeatherTerms: ["雨", "晴れ", "曇り", "雪", "風", "夜風", "揺れ", "揺れる"],
   defaultFallback: "机の上に、カップが置いてある。",
   timeBands: {
     morning: {
@@ -57,6 +58,27 @@ test("validateTimeSignalText rejects time-band mismatch", () => {
 
   assert.equal(result.safe, false);
   assert.ok(result.reasons.includes("time_mismatch:夕飯"));
+});
+
+test("validateTimeSignalText rejects dark morning expressions", () => {
+  const result = validateTimeSignalText(
+    "窓の向こうに、空はまだ薄暗い。",
+    { hour: 8, timeText: "morning" },
+    {
+      ...safetyConfig,
+      concreteTerms: [...safetyConfig.concreteTerms, "窓"],
+      timeBands: {
+        ...safetyConfig.timeBands,
+        morning: {
+          ...safetyConfig.timeBands.morning,
+          blocked: [...safetyConfig.timeBands.morning.blocked, "薄暗", "暗く"],
+        },
+      },
+    },
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("time_mismatch:薄暗"));
 });
 
 test("validateTimeSignalText accepts safe concrete text", () => {
@@ -158,4 +180,82 @@ test("safety config loader caches and reloads config", () => {
   const second = loadSafetyConfig();
   assert.strictEqual(first, second);
   assert.notStrictEqual(reloadSafetyConfig(), first);
+});
+
+
+test("validateTimeSignalText rejects weather terms when weather is unknown", () => {
+  const result = validateTimeSignalText(
+    "机の上のカップに雨の音が近づく。",
+    { hour: 21, timeText: "night", weather: { summary: "unknown" } },
+    safetyConfig,
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("weather_unknown:雨"));
+});
+
+test("validateTimeSignalText rejects wind terms when weather is unknown", () => {
+  const result = validateTimeSignalText(
+    "机の上のカップに夜風が近づく。",
+    { hour: 21, timeText: "night", weather: { summary: "unknown" } },
+    safetyConfig,
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("weather_unknown:風"));
+});
+
+test("validateTimeSignalText rejects swaying terms when weather is unknown", () => {
+  const result = validateTimeSignalText(
+    "窓際の鉢花が揺れる。",
+    { hour: 21, timeText: "evening", weather: { summary: "unknown" } },
+    {
+      ...safetyConfig,
+      concreteTerms: [...safetyConfig.concreteTerms, "窓"],
+    },
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("weather_unknown:揺れ"));
+});
+
+test("validateTimeSignalText allows weather terms when weather is known", () => {
+  const result = validateTimeSignalText(
+    "机の上のカップに雨の音が近づく。",
+    { hour: 21, timeText: "night", weather: { summary: "雨" } },
+    safetyConfig,
+  );
+
+  assert.equal(result.reasons.includes("weather_unknown:雨"), false);
+});
+
+
+test("validateTimeSignalText rejects clock meta expressions", () => {
+  const result = validateTimeSignalText(
+    "寝ぼけ眼で片付けたマグカップを見つめ、時計を見落としてしまった。",
+    { hour: 8, timeText: "morning" },
+    {
+      ...safetyConfig,
+      commonDangerTerms: [...safetyConfig.commonDangerTerms, "時計", "見落と"],
+      concreteTerms: [...safetyConfig.concreteTerms, "マグカップ"],
+    },
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("danger:時計"));
+});
+
+test("validateTimeSignalText rejects malformed quiet expressions", () => {
+  const result = validateTimeSignalText(
+    "部屋の静けしさは、夜の息抜きに丁度良い。",
+    { hour: 21, timeText: "night" },
+    {
+      ...safetyConfig,
+      commonDangerTerms: [...safetyConfig.commonDangerTerms, "静けし", "丁度良い"],
+      concreteTerms: [...safetyConfig.concreteTerms, "部屋"],
+    },
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("danger:静けし"));
 });
