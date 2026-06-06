@@ -11,20 +11,38 @@ const DEFAULT_CONFIG = Object.freeze({
 
 let cachedConfig = null;
 
-function readConversationCategoryConfig() {
-  const filePath = path.join(process.cwd(), "config", "conversation_category.json");
+function resolveConfigPath(options = {}) {
+  return options.filePath || path.join(
+    options.baseDir || process.cwd(),
+    "config",
+    "conversation_category.json",
+  );
+}
 
-  if (!fs.existsSync(filePath)) {
+function readConversationCategoryConfig(options = {}) {
+  const filePath = resolveConfigPath(options);
+  const existsSync = options.existsSync || fs.existsSync;
+  const readFileSync = options.readFileSync || fs.readFileSync;
+
+  if (!existsSync(filePath)) {
     return DEFAULT_CONFIG;
   }
 
   return {
     ...DEFAULT_CONFIG,
-    ...JSON.parse(fs.readFileSync(filePath, "utf-8")),
+    ...JSON.parse(readFileSync(filePath, "utf-8")),
   };
 }
 
-function loadConversationCategoryConfig() {
+function hasConfigOptions(options = {}) {
+  return Object.keys(options).length > 0;
+}
+
+function loadConversationCategoryConfig(options = {}) {
+  if (hasConfigOptions(options)) {
+    return readConversationCategoryConfig(options);
+  }
+
   if (!cachedConfig) {
     cachedConfig = readConversationCategoryConfig();
   }
@@ -32,9 +50,14 @@ function loadConversationCategoryConfig() {
   return cachedConfig;
 }
 
-function reloadConversationCategoryConfig() {
-  cachedConfig = readConversationCategoryConfig();
-  return cachedConfig;
+function reloadConversationCategoryConfig(options = {}) {
+  const config = readConversationCategoryConfig(options);
+
+  if (!hasConfigOptions(options)) {
+    cachedConfig = config;
+  }
+
+  return config;
 }
 
 function scoreCategory(text, category, config = loadConversationCategoryConfig()) {
@@ -84,6 +107,7 @@ module.exports = {
   categoryInstruction,
   classifyConversation,
   loadConversationCategoryConfig,
+  readConversationCategoryConfig,
   reloadConversationCategoryConfig,
   scoreCategory,
 };

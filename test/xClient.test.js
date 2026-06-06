@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const {
   canPostToX,
+  createXClient,
   getXCredentials,
   hasRecentDuplicate,
   isXDryRun,
@@ -137,4 +138,24 @@ test("postTweet sends through provided client when not dry-run", async (t) => {
   assert.deepEqual(tweets, ["hello"]);
   assert.deepEqual(result, { id: "tweet-1", text: "hello" });
   assert.equal(hasRecentDuplicate(settings, "hello"), true);
+});
+
+
+test("createXClient supports injected TwitterApi class", () => {
+  class FakeTwitterApi {
+    constructor(credentials) {
+      this.credentials = credentials;
+    }
+  }
+
+  const credentials = {
+    appKey: "key",
+    appSecret: "secret",
+    accessToken: "token",
+    accessSecret: "access-secret",
+  };
+  const client = createXClient(credentials, { TwitterApiClass: FakeTwitterApi });
+
+  assert.ok(client instanceof FakeTwitterApi);
+  assert.deepEqual(client.credentials, credentials);
 });

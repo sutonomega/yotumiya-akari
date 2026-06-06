@@ -7,14 +7,16 @@ const {
 } = require("./conversationCategory");
 const { retrieveMemory } = require("./memoryRetrieval");
 
-function loadPrompt(fileName) {
-  const filePath = path.join(process.cwd(), "prompts", fileName);
+function loadPrompt(fileName, options = {}) {
+  const filePath = path.join(options.baseDir || process.cwd(), "prompts", fileName);
+  const existsSync = options.existsSync || fs.existsSync;
+  const readFileSync = options.readFileSync || fs.readFileSync;
 
-  if (!fs.existsSync(filePath)) {
+  if (!existsSync(filePath)) {
     return "";
   }
 
-  return fs.readFileSync(filePath, "utf-8");
+  return readFileSync(filePath, "utf-8");
 }
 
 function renderTemplate(template, values) {
@@ -77,6 +79,7 @@ async function buildBaseReply({
   analysis,
   mode,
   settings,
+  promptLoader = loadPrompt,
 }) {
   // ========================================
   // disabled
@@ -99,7 +102,7 @@ async function buildBaseReply({
     ...messages,
     {
       role: "system",
-      content: renderTemplate(loadPrompt("response_base_rules.txt"), {
+      content: renderTemplate(promptLoader("response_base_rules.txt"), {
         analysisText,
       }),
     },
@@ -111,7 +114,13 @@ async function buildBaseReply({
   return sanitizeModelText(await callModel(requestMessages));
 }
 
-async function personalizeReply({ callModel, baseReply, settings, mode }) {
+async function personalizeReply({
+  callModel,
+  baseReply,
+  settings,
+  mode,
+  promptLoader = loadPrompt,
+}) {
   // ========================================
   // disabled
   // ========================================
@@ -123,7 +132,7 @@ async function personalizeReply({ callModel, baseReply, settings, mode }) {
   return sanitizeModelText(await callModel([
     {
       role: "system",
-      content: loadPrompt("response_personalize.txt"),
+      content: promptLoader("response_personalize.txt"),
     },
     {
       role: "user",
@@ -139,6 +148,7 @@ async function runResponsePipeline({
   messages,
   mode,
   callModel,
+  promptLoader = loadPrompt,
 }) {
   const analysis = await analyzeInput({
     settings,
@@ -152,6 +162,7 @@ async function runResponsePipeline({
     analysis,
     mode,
     settings,
+    promptLoader,
   });
 
   const finalReply = await personalizeReply({
@@ -159,6 +170,7 @@ async function runResponsePipeline({
     baseReply,
     settings,
     mode,
+    promptLoader,
   });
 
   return {
@@ -170,6 +182,7 @@ async function runResponsePipeline({
 
 module.exports = {
   analyzeInput,
+  loadPrompt,
   buildBaseReply,
   personalizeReply,
   runResponsePipeline,

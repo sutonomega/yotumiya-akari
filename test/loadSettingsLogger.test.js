@@ -71,3 +71,37 @@ test("logger defaults to INFO type when type is omitted", async (t) => {
   const content = fs.readFileSync(logPath, "utf-8");
   assert.ok(content.includes("[INFO] default type message"));
 });
+
+
+test("createLogger supports injected log path and filesystem", () => {
+  const defaultLog = require("../functions/logger");
+  const writes = [];
+  const dirs = [];
+  const fakeFs = {
+    existsSync: () => false,
+    mkdirSync: (dir, options) => dirs.push({ dir, options }),
+    createWriteStream: (filePath, options) => {
+      writes.push({ filePath, options, chunks: [] });
+      return {
+        write: (chunk) => writes[writes.length - 1].chunks.push(chunk),
+        end: () => writes[writes.length - 1].ended = true,
+      };
+    },
+  };
+  const consoleLines = [];
+  const log = defaultLog.createLogger({
+    logPath: "/virtual/logs/test.log",
+    fsModule: fakeFs,
+    consoleLog: (line) => consoleLines.push(line),
+    now: () => new Date("2026-06-06T00:00:00.000Z"),
+  });
+
+  log("info", "injected message", { ok: true });
+  log.close();
+
+  assert.deepEqual(dirs, [{ dir: "/virtual/logs", options: { recursive: true } }]);
+  assert.equal(writes[0].filePath, "/virtual/logs/test.log");
+  assert.ok(writes[0].chunks[0].includes('[INFO] injected message {"ok":true}'));
+  assert.equal(writes[0].ended, true);
+  assert.ok(consoleLines[0].includes("2026-06-06T00:00:00.000Z"));
+});

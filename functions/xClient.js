@@ -21,8 +21,9 @@ function getXCredentials() {
   return credentials;
 }
 
-function createXClient(credentials = getXCredentials()) {
-  return new TwitterApi(credentials);
+function createXClient(credentials = getXCredentials(), options = {}) {
+  const TwitterApiClass = options.TwitterApiClass || TwitterApi;
+  return new TwitterApiClass(credentials);
 }
 
 function normalizeTweetText(text, maxLength = 280) {
