@@ -58,6 +58,10 @@
   "enablePersonalizeReply": false,
   "timeSignalRepairMaxAttempts": 1,
   "enableNightlyProcess": false,
+  "webChatPort": 3000,
+  "webChatFrontendPort": 5173,
+  "enableWebChatAnalyzeInput": true,
+  "enableWebChatCurrentState": true,
 
   "enableGoodExamples": true,
   "enableBadExamples": true,

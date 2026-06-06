@@ -59,7 +59,7 @@ function getTimeDescription(currentState) {
   return prompts.default || "";
 }
 
-function buildSystemPrompt(settings, currentState) {
+function buildSystemPrompt(settings, currentState, mode = "reply") {
   const goodExamples = loadText(
     settings.memoryDir,
     "feedback",
@@ -78,9 +78,11 @@ function buildSystemPrompt(settings, currentState) {
   );
   const longMemory = loadText(settings.memoryDir, "long_memory.txt");
   const systemPrompt = loadText("prompts", "system.txt");
+  const webChatPrompt = mode === "reply" ? loadText("prompts", "web_chat.txt") : "";
 
   return [
     systemPrompt,
+    webChatPrompt,
     settings.enableAiProfile ? `${settings.aiName} profile:\n${aiProfile}` : "",
     settings.enableUserProfile
       ? `${settings.userName} profile:\n${userProfile}`
@@ -106,8 +108,9 @@ async function generateMessage({
   currentHour = null,
   currentState = null,
   eventPrompt = "",
+  settingsOverride = null,
 } = {}) {
-  const settings = loadSettings();
+  const settings = settingsOverride || loadSettings();
   const state =
     currentState ||
     (await getEnvironmentState({
@@ -208,3 +211,4 @@ async function generateMessage({
 }
 
 module.exports = generateMessage;
+module.exports.buildSystemPrompt = buildSystemPrompt;
