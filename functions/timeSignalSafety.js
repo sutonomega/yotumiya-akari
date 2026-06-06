@@ -16,20 +16,38 @@ const DEFAULT_SAFETY_CONFIG = {
 
 let cachedSafetyConfig = null;
 
-function readSafetyConfig() {
-  const filePath = path.join(process.cwd(), "config", "time_signal_safety.json");
+function resolveSafetyConfigPath(options = {}) {
+  return options.filePath || path.join(
+    options.baseDir || process.cwd(),
+    "config",
+    "time_signal_safety.json",
+  );
+}
 
-  if (!fs.existsSync(filePath)) {
+function readSafetyConfig(options = {}) {
+  const filePath = resolveSafetyConfigPath(options);
+  const existsSync = options.existsSync || fs.existsSync;
+  const readFileSync = options.readFileSync || fs.readFileSync;
+
+  if (!existsSync(filePath)) {
     return DEFAULT_SAFETY_CONFIG;
   }
 
   return {
     ...DEFAULT_SAFETY_CONFIG,
-    ...JSON.parse(fs.readFileSync(filePath, "utf-8")),
+    ...JSON.parse(readFileSync(filePath, "utf-8")),
   };
 }
 
-function loadSafetyConfig() {
+function hasConfigOptions(options = {}) {
+  return Object.keys(options).length > 0;
+}
+
+function loadSafetyConfig(options = {}) {
+  if (hasConfigOptions(options)) {
+    return readSafetyConfig(options);
+  }
+
   if (!cachedSafetyConfig) {
     cachedSafetyConfig = readSafetyConfig();
   }
@@ -37,9 +55,14 @@ function loadSafetyConfig() {
   return cachedSafetyConfig;
 }
 
-function reloadSafetyConfig() {
-  cachedSafetyConfig = readSafetyConfig();
-  return cachedSafetyConfig;
+function reloadSafetyConfig(options = {}) {
+  const config = readSafetyConfig(options);
+
+  if (!hasConfigOptions(options)) {
+    cachedSafetyConfig = config;
+  }
+
+  return config;
 }
 
 function timeBand(currentState = {}) {
@@ -221,6 +244,7 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
 
 module.exports = {
   loadSafetyConfig,
+  readSafetyConfig,
   reloadSafetyConfig,
   pickFallback,
   repairTimeSignalPost,

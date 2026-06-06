@@ -6,6 +6,7 @@ const path = require("node:path");
 const {
   applyRecentPhraseValidation,
   loadSafetyConfig,
+  readSafetyConfig,
   pickFallback,
   repairTimeSignalPost,
   timeBand,
@@ -31,6 +32,37 @@ const safetyConfig = {
     },
   },
 };
+
+test("safety config reader supports injected missing file and custom content", () => {
+  assert.deepEqual(
+    readSafetyConfig({
+      filePath: "/virtual/time_signal_safety.json",
+      existsSync: () => false,
+    }),
+    {
+      fallbackLogFile: "time_signal_fallbacks.json",
+      fallbackLogLimit: 100,
+      commonDangerTerms: [],
+      concreteTerms: [],
+      unknownWeatherTerms: [],
+      timeBands: {},
+      defaultFallback: "",
+    },
+  );
+
+  const config = loadSafetyConfig({
+    filePath: "/virtual/time_signal_safety.json",
+    existsSync: () => true,
+    readFileSync: () => JSON.stringify({
+      commonDangerTerms: ["危険"],
+      defaultFallback: "机にカップがある。",
+    }),
+  });
+
+  assert.deepEqual(config.commonDangerTerms, ["危険"]);
+  assert.equal(config.defaultFallback, "机にカップがある。");
+  assert.deepEqual(config.concreteTerms, []);
+});
 
 test("timeBand uses currentState.timeText", () => {
   assert.equal(timeBand({ hour: 12, timeText: "daytime" }), "daytime");

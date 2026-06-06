@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildBaseReply,
+  loadPrompt,
   personalizeReply,
   runResponsePipeline,
 } = require("../functions/responsePipeline");
@@ -103,4 +104,55 @@ test("personalizeReply calls model and sanitizes when enabled", async () => {
   });
 
   assert.equal(reply, "流しにカップを置いている。");
+});
+
+
+test("loadPrompt supports injected filesystem boundaries", () => {
+  assert.equal(
+    loadPrompt("missing.txt", {
+      baseDir: "/virtual",
+      existsSync: () => false,
+    }),
+    "",
+  );
+
+  assert.equal(
+    loadPrompt("rules.txt", {
+      baseDir: "/virtual",
+      existsSync: () => true,
+      readFileSync: (filePath) => `loaded:${filePath}`,
+    }),
+    "loaded:/virtual/prompts/rules.txt",
+  );
+});
+
+test("response pipeline accepts injected prompt loader", async () => {
+  const seenPrompts = [];
+  const result = await runResponsePipeline({
+    settings: {
+      enableAnalyzeInput: false,
+      enableBaseReply: true,
+      enablePersonalizeReply: true,
+    },
+    userMessage: "",
+    currentState: { timeText: "night" },
+    messages: [],
+    mode: "post",
+    promptLoader: (fileName) => {
+      seenPrompts.push(fileName);
+      return fileName === "response_base_rules.txt"
+        ? "base {{analysisText}}"
+        : "personalize";
+    },
+    callModel: async (messages) => {
+      const system = messages.find((message) => message.role === "system")?.content || "";
+      return system.includes("personalize")
+        ? "Final: remove\n机にカップを置いている。"
+        : "Draft: remove\n台所にカップがある。";
+    },
+  });
+
+  assert.deepEqual(seenPrompts, ["response_base_rules.txt", "response_personalize.txt"]);
+  assert.equal(result.baseReply, "台所にカップがある。");
+  assert.equal(result.finalReply, "机にカップを置いている。");
 });

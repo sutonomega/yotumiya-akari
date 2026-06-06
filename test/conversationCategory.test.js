@@ -5,6 +5,7 @@ const {
   categoryInstruction,
   classifyConversation,
   loadConversationCategoryConfig,
+  readConversationCategoryConfig,
   reloadConversationCategoryConfig,
 } = require("../functions/conversationCategory");
 
@@ -40,4 +41,35 @@ test("config loader caches and reloads config", () => {
 
 test("technical signal wins over one playful signal", () => {
   assert.equal(classifyConversation("APIエラー www", { hour: 14 }), "technical");
+});
+
+
+test("config reader supports injected missing file and custom file content", () => {
+  assert.deepEqual(
+    readConversationCategoryConfig({
+      filePath: "/virtual/conversation_category.json",
+      existsSync: () => false,
+    }),
+    {
+      categories: ["casual"],
+      signals: {},
+      instructions: { default: "" },
+      sleepyHourStart: 0,
+      sleepyHourEnd: 6,
+    },
+  );
+
+  const config = loadConversationCategoryConfig({
+    filePath: "/virtual/conversation_category.json",
+    existsSync: () => true,
+    readFileSync: () => JSON.stringify({
+      categories: ["custom"],
+      signals: { custom: ["hello"] },
+      instructions: { custom: "custom instruction" },
+    }),
+  });
+
+  assert.deepEqual(config.categories, ["custom"]);
+  assert.deepEqual(config.signals.custom, ["hello"]);
+  assert.equal(config.instructions.custom, "custom instruction");
 });
