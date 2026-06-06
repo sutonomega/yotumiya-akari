@@ -5,8 +5,6 @@
   "main": "index.js",
   "scripts": {
     "start": "node bot.js",
-    "start:x": "node -e \"process.env.BOT_TARGET='x'; require('./bot')\"",
-    "start:discord": "node -e \"process.env.BOT_TARGET='discord'; require('./bot')\"",
     "test:time-post": "TEST_TIME_POST_HOUR=21 node scripts/test-time-post.js",
     "test": "npm run test:unit && npm run test:time-post",
     "test:unit": "node --test test/**/*.test.js",

@@ -1,6 +1,9 @@
 require("dotenv").config();
 
-const target = process.env.BOT_TARGET || "x";
+const loadSettings = require("./functions/loadSettings");
+const { resolveBotTarget } = require("./functions/botTarget");
+
+const target = resolveBotTarget(loadSettings());
 
 if (target === "discord") {
   require("./functions/discordBot");
