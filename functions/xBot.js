@@ -1,18 +1,18 @@
 require("dotenv").config();
 
-const log = require("./functions/logger");
+const log = require("./logger");
 
-const checkScheduler = require("./functions/scheduler");
+const checkScheduler = require("./scheduler");
 
-const { getEnvironmentState } = require("./functions/environmentState");
+const { getEnvironmentState } = require("./environmentState");
 
-const generateMessage = require("./functions/generateMessage");
+const generateMessage = require("./generateMessage");
 
-const speak = require("./functions/speak");
+const speak = require("./speak");
 
-const loadSettings = require("./functions/loadSettings");
-const utteranceQueue = require("./functions/utteranceQueue");
-const { postTweet } = require("./functions/xClient");
+const loadSettings = require("./loadSettings");
+const utteranceQueue = require("./utteranceQueue");
+const { postTweet } = require("./xClient");
 
 // =========================
 // settings

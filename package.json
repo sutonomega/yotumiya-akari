@@ -10,7 +10,10 @@
     "test:time-post": "TEST_TIME_POST_HOUR=21 node scripts/test-time-post.js",
     "test": "npm run test:unit && npm run test:time-post",
     "test:unit": "node --test test/**/*.test.js",
-    "test:coverage": "node --test --experimental-test-coverage test/**/*.test.js"
+    "test:coverage": "node --test --experimental-test-coverage test/**/*.test.js",
+    "web": "concurrently -k -n server,frontend \"npm run web:server\" \"npm run web:frontend\"",
+    "web:server": "node webChatServer.js",
+    "web:frontend": "npm run dev --prefix frontend -- --host 127.0.0.1"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +27,7 @@
     "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "eslint": "^9.39.4",
     "prettier": "^3.8.3"
   }

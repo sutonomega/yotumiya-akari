@@ -31,19 +31,19 @@ Yorumiya AI は、ローカル LLM を中心にした人格 AI / 時報 bot で�
 
 ```txt
 bot.js
-  -> xBot.js / discordBot.js
+  -> functions/xBot.js / functions/discordBot.js
        -> scheduler.js
        -> environmentState.js
        -> generateMessage.js
        -> xClient.js / postTarget.js
 
-api.js
+webChatServer.js
   -> environmentState.js
   -> generateMessage.js
   -> processHistory.js
 
 frontend/
-  -> api.js の /api/chat と /api/feedback を利用
+  -> webChatServer.js の /api/chat と /api/feedback を利用
 ```
 
 主要ディレクトリ:
@@ -70,22 +70,29 @@ npm run start:discord
 
 内部的には次の分岐です。
 
-- `BOT_TARGET=discord`: `discordBot.js`
-- それ以外: `xBot.js`
+- `BOT_TARGET=discord`: `functions/discordBot.js`
+- それ以外: `functions/xBot.js`
 
-### xBot.js
+### functions/xBot.js
 
 1分ごとに scheduler を確認し、投稿対象の時刻なら発話を生成して X に渡します。
 `settings.xDryRun` または `X_DRY_RUN` が有効な場合、実投稿せず `memory/x_post_state.json` に記録します。
 
-### discordBot.js
+### functions/discordBot.js
 
 Discord client を起動し、ready 後に 1分ごとの scheduler loop を開始します。
 投稿先 channel は `settings.channelId` で指定します。
 
-### api.js
+### webChatServer.js
 
-Express API です。
+WebUI 会話用の Express server です。常駐 bot ではなく、使う時だけ起動する会話アプリの backend として扱います。`functions/api.js` は互換用の起動 shim です。
+
+`npm run web` で backend と frontend をまとめて起動します。
+
+- backend: `node webChatServer.js`
+- frontend: `npm run dev --prefix frontend -- --host 127.0.0.1`
+
+API:
 
 - `GET /`: ヘルスチェック。
 - `POST /api/chat`: WebUI 会話。
@@ -94,7 +101,7 @@ Express API です。
 ## 定期投稿フロー
 
 ```txt
-xBot.js / discordBot.js
+functions/xBot.js / functions/discordBot.js
   -> checkScheduler()
   -> getEnvironmentState()
   -> utteranceQueue.enqueue()
@@ -130,7 +137,7 @@ frontend
   -> POST /api/chat
   -> getEnvironmentState({ userMessage })
   -> utteranceQueue.enqueue()
-  -> generateMessage({ mode: "reply", userMessage, ... })
+  -> generateMessage({ mode: "reply", userMessage, currentState, settingsOverride })
   -> processHistory()
   -> response json
 ```
@@ -138,7 +145,7 @@ frontend
 `processHistory()` は会話履歴を保存し、設定が有効な場合だけ summary、long memory、履歴圧縮を実行します。
 現在の `settings.json` では summary と long memory generation は無効です。
 
-注意: `api.js` は `getEnvironmentState()` で状態を作っていますが、`generateMessage()` には `currentHour` のみ渡しています。会話生成に完全な環境状態を反映させたい場合は、`currentState` を渡す形へ揃える余地があります。
+WebUI 会話では `getEnvironmentState()` で作った `currentState` をそのまま `generateMessage()` に渡します。`enableWebChatAnalyzeInput` と `enableWebChatCurrentState` で、WebUI 会話だけ分析・状態プロンプトを有効化できます。
 
 ## 状態収集
 
@@ -284,7 +291,7 @@ X_ACCESS_TOKEN_SECRET=
 
 ### Discord
 
-`discordBot.js` が channel を fetch し、`functions/postTarget.js` 経由で送信します。
+`functions/discordBot.js` が channel を fetch し、`functions/postTarget.js` 経由で送信します。
 `DISCORD_TOKEN` と `settings.channelId` が必要です。
 
 ## 記憶と履歴
@@ -453,7 +460,7 @@ X 実投稿直前の確認:
 - 状態追加: `environmentState.js` に state を追加し、`statePrompt.js` で prompt 化する。
 - prompt 改善: `prompts/` と `config/` の外部ファイルを調整する。コードへプロンプトや辞書を直書きしない。
 - 記憶改善: `processHistory()`、`longMemory.js`、`memoryRetrieval.js` の範囲で扱う。
-- UI 改善: `frontend/` と `api.js` の API 境界を維持する。
+- UI 改善: `frontend/` と `webChatServer.js` の API 境界を維持する。
 
 
 ## 開発ルール

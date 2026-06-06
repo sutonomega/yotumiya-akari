@@ -12,15 +12,15 @@ X 投稿へ移行する時は、既存の定期実行・状態取得・文章生
 
 ```txt
 bot.js
-  -> discordBot.js
-  -> xBot.js
+  -> functions/discordBot.js
+  -> functions/xBot.js
 ```
 
 推奨ファイル名:
 
 - `bot.js`: 起動対象を選ぶ entry point。
-- `discordBot.js`: 既存の Discord 定期投稿 bot。
-- `xBot.js`: 新しい X 定期投稿 bot。
+- `functions/discordBot.js`: 既存の Discord 定期投稿 bot。
+- `functions/xBot.js`: 新しい X 定期投稿 bot。
 
 `discord.js` というファイル名は npm package の `discord.js` と紛らわしいため避ける。
 
@@ -48,7 +48,7 @@ checkScheduler()
 ### Discord Flow
 
 ```txt
-discordBot.js
+functions/discordBot.js
   -> Discord Client login
   -> scheduler loop
   -> generateMessage()
@@ -58,7 +58,7 @@ discordBot.js
 ### X Flow
 
 ```txt
-xBot.js
+functions/xBot.js
   -> scheduler loop
   -> generateMessage()
   -> xClient.postTweet()
@@ -74,9 +74,9 @@ X 版では Discord Client、channel fetch、Discord token は不要にする。
 const target = process.env.BOT_TARGET || "x";
 
 if (target === "discord") {
-  require("./discordBot");
+  require("./functions/discordBot");
 } else {
-  require("./xBot");
+  require("./functions/xBot");
 }
 ```
 
@@ -339,12 +339,12 @@ memory/x_post_state.json
 ### Step 1: Split Bot Entry
 
 - `bot.js` を entry point にする。
-- 既存の Discord 実装を `discordBot.js` へ移す。
+- 既存の Discord 実装を `functions/discordBot.js` へ移す。
 - `BOT_TARGET=discord` で旧動作を維持する。
 
 ### Step 2: Add X Bot Skeleton
 
-- `xBot.js` を追加する。
+- `functions/xBot.js` を追加する。
 - scheduler / environment / generateMessage を共通利用する。
 - 投稿部分は dry-run でログ出力する。
 
