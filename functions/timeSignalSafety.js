@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
+const { repetitionPenalty } = require("./recentPhrases");
 const { readState, writeState } = require("./stateStore");
 
 const DEFAULT_SAFETY_CONFIG = {
@@ -110,14 +111,30 @@ function validateTimeSignalText(text, currentState = {}, config = loadSafetyConf
   };
 }
 
-function pickFallback(currentState = {}, config = loadSafetyConfig()) {
+function pickFallback(currentState = {}, config = loadSafetyConfig(), settings = null) {
   const candidates = timeBandConfig(config, currentState).fallback || [];
 
   if (candidates.length === 0) {
     return config.defaultFallback || "";
   }
 
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  const available = settings
+    ? candidates.filter((candidate) => repetitionPenalty(settings, candidate) === 0)
+    : candidates;
+  const pool = available.length > 0 ? available : candidates;
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function applyRecentPhraseValidation(validation, settings, text) {
+  if (validation.safe && repetitionPenalty(settings, text) > 0) {
+    return {
+      safe: false,
+      reasons: ["recent_phrase"],
+    };
+  }
+
+  return validation;
 }
 
 function saveFallbackLog({ settings, currentState, attempts, originalText, finalText, reasons, config }) {
@@ -147,7 +164,11 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
   const config = loadSafetyConfig();
   const maxAttempts = Math.max(0, Number(settings.timeSignalRepairMaxAttempts || 0));
   let current = String(message || "").trim();
-  let validation = validateTimeSignalText(current, currentState, config);
+  let validation = applyRecentPhraseValidation(
+    validateTimeSignalText(current, currentState, config),
+    settings,
+    current,
+  );
   const originalText = current;
   let attempts = 0;
 
@@ -156,7 +177,11 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
 
     try {
       current = String(await regenerate({ previousText: current, reasons: validation.reasons })).trim();
-      validation = validateTimeSignalText(current, currentState, config);
+      validation = applyRecentPhraseValidation(
+        validateTimeSignalText(current, currentState, config),
+        settings,
+        current,
+      );
     } catch (error) {
       validation = {
         safe: false,
@@ -175,7 +200,7 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
     };
   }
 
-  const fallback = pickFallback(currentState, config);
+  const fallback = pickFallback(currentState, config, settings);
   saveFallbackLog({
     settings,
     currentState,
@@ -200,6 +225,7 @@ module.exports = {
   pickFallback,
   repairTimeSignalPost,
   isWeatherUnknown,
+  applyRecentPhraseValidation,
   timeBand,
   validateTimeSignalText,
 };

@@ -50,5 +50,6 @@
   "dailyPostHours": [6, 12, 18, 22],
 
   "enableVoice": false,
-  "timeSignalRepairMaxAttempts": 1
+  "timeSignalRepairMaxAttempts": 1,
+  "enableNightlyProcess": false
 }

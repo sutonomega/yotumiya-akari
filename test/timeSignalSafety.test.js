@@ -4,12 +4,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const {
+  applyRecentPhraseValidation,
   loadSafetyConfig,
   pickFallback,
   repairTimeSignalPost,
   timeBand,
   validateTimeSignalText,
 } = require("../functions/timeSignalSafety");
+const { saveRecentPhrases } = require("../functions/recentPhrases");
 
 const safetyConfig = {
   fallbackLogFile: "time_signal_fallbacks.json",
@@ -135,6 +137,54 @@ test("validateTimeSignalText rejects too short, too long, and polite form", () =
   assert.ok(validateTimeSignalText("机にカップがあります。", { timeText: "night" }, safetyConfig).reasons.includes("polite_form"));
 });
 
+test("pickFallback avoids recently used fallback candidates", (t) => {
+  const tempBaseDir = path.join(process.cwd(), "tmp");
+  fs.mkdirSync(tempBaseDir, { recursive: true });
+  const tempDir = fs.mkdtempSync(path.join(tempBaseDir, "test-recent-fallback-"));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const settings = {
+    memoryDir: path.relative(process.cwd(), tempDir),
+    aiName: "夜宮 灯",
+  };
+  const repeated = "机の上にマグカップを置き、朝の支度を始める。";
+  const alternate = "洗面台の水音がして、マグカップが机に置いてある。";
+
+  saveRecentPhrases(settings, repeated, 10);
+
+  assert.equal(
+    pickFallback(
+      { hour: 8, timeText: "morning" },
+      {
+        ...safetyConfig,
+        timeBands: {
+          morning: { fallback: [repeated, alternate], blocked: [] },
+        },
+      },
+      settings,
+    ),
+    alternate,
+  );
+});
+
+test("applyRecentPhraseValidation rejects repeated generated text", (t) => {
+  const tempBaseDir = path.join(process.cwd(), "tmp");
+  fs.mkdirSync(tempBaseDir, { recursive: true });
+  const tempDir = fs.mkdtempSync(path.join(tempBaseDir, "test-recent-validation-"));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const settings = {
+    memoryDir: path.relative(process.cwd(), tempDir),
+    aiName: "夜宮 灯",
+  };
+  const text = "机の上にカップを置いて、台所の音を聞いている。";
+
+  saveRecentPhrases(settings, text, 10);
+
+  assert.deepEqual(
+    applyRecentPhraseValidation({ safe: true, reasons: [] }, settings, text),
+    { safe: false, reasons: ["recent_phrase"] },
+  );
+});
+
 test("pickFallback uses default fallback when band has no candidates", () => {
   assert.equal(pickFallback({ timeText: "daytime" }, safetyConfig), "机の上に、カップが置いてある。");
 });
@@ -243,6 +293,107 @@ test("validateTimeSignalText rejects clock meta expressions", () => {
 
   assert.equal(result.safe, false);
   assert.ok(result.reasons.includes("danger:時計"));
+});
+
+test("validateTimeSignalText rejects awkward phrases from observed history", () => {
+  const config = {
+    ...safetyConfig,
+    commonDangerTerms: [
+      ...safetyConfig.commonDangerTerms,
+      "視線を逸らす",
+      "手を洗う",
+      "冷めたカップから湯気",
+      "思い出す頃",
+      "寝ぼけ眼",
+    ],
+    concreteTerms: [
+      ...safetyConfig.concreteTerms,
+      "マグカップ",
+      "流し",
+      "飲み物",
+      "窓",
+    ],
+  };
+
+  assert.ok(
+    validateTimeSignalText(
+      "寝る前の部屋で片づけたカップから視線を逸らす。",
+      { hour: 0, timeText: "night" },
+      config,
+    ).reasons.includes("danger:視線を逸らす"),
+  );
+  assert.ok(
+    validateTimeSignalText(
+      "机の上で手を洗う。",
+      { hour: 8, timeText: "morning" },
+      config,
+    ).reasons.includes("danger:手を洗う"),
+  );
+  assert.ok(
+    validateTimeSignalText(
+      "冷めたカップから湯気を上げる。",
+      { hour: 21, timeText: "evening" },
+      config,
+    ).reasons.includes("danger:冷めたカップから湯気"),
+  );
+  assert.ok(
+    validateTimeSignalText(
+      "窓際のコーヒーを思い出す頃。",
+      { hour: 14, timeText: "daytime" },
+      config,
+    ).reasons.includes("danger:思い出す頃"),
+  );
+  assert.ok(
+    validateTimeSignalText(
+      "寝ぼけ眼で片付けた台所のカップ。",
+      { hour: 9, timeText: "morning" },
+      config,
+    ).reasons.includes("danger:寝ぼけ眼"),
+  );
+});
+
+test("validateTimeSignalText rejects fading light in morning and daytime", () => {
+  const config = {
+    ...safetyConfig,
+    commonDangerTerms: [
+      ...safetyConfig.commonDangerTerms,
+      "遠ざかる",
+      "薄れて",
+      "薄れる",
+    ],
+    concreteTerms: [...safetyConfig.concreteTerms, "流し", "窓"],
+    timeBands: {
+      ...safetyConfig.timeBands,
+      morning: {
+        ...safetyConfig.timeBands.morning,
+        blocked: [
+          ...safetyConfig.timeBands.morning.blocked,
+          "遠ざかる",
+          "薄れて",
+          "薄れる",
+        ],
+      },
+      daytime: {
+        fallback: ["机の上に、飲み物が置いてある。"],
+        blocked: ["遠ざかる", "薄れて", "薄れる"],
+      },
+    },
+  };
+
+  assert.ok(
+    validateTimeSignalText(
+      "流しで片付けながら、日の光が部屋から遠ざかる。",
+      { hour: 8, timeText: "morning" },
+      config,
+    ).reasons.includes("danger:遠ざかる"),
+  );
+  assert.ok(
+    validateTimeSignalText(
+      "窓の明るさが少しずつ薄れてくる。",
+      { hour: 9, timeText: "morning" },
+      config,
+    ).reasons.includes("danger:薄れて"),
+  );
 });
 
 test("validateTimeSignalText rejects malformed quiet expressions", () => {

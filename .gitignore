@@ -12,6 +12,8 @@ memory/talk_stats.json
 memory/recent_phrases.json
 memory/x_post_state.json
 memory/x_token.json
+memory/time_signal_fallbacks.json
+memory/nightly_process.json
 
 logs/
 
