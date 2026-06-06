@@ -31,7 +31,7 @@ Yorumiya AI は、ローカル LLM を中心にした人格 AI / 時報 bot で�
 
 ```txt
 bot.js
-  -> xBot.js / discordBot.js
+  -> functions/xBot.js / functions/discordBot.js
        -> scheduler.js
        -> environmentState.js
        -> generateMessage.js
@@ -70,22 +70,22 @@ npm run start:discord
 
 内部的には次の分岐です。
 
-- `BOT_TARGET=discord`: `discordBot.js`
-- それ以外: `xBot.js`
+- `BOT_TARGET=discord`: `functions/discordBot.js`
+- それ以外: `functions/xBot.js`
 
-### xBot.js
+### functions/xBot.js
 
 1分ごとに scheduler を確認し、投稿対象の時刻なら発話を生成して X に渡します。
 `settings.xDryRun` または `X_DRY_RUN` が有効な場合、実投稿せず `memory/x_post_state.json` に記録します。
 
-### discordBot.js
+### functions/discordBot.js
 
 Discord client を起動し、ready 後に 1分ごとの scheduler loop を開始します。
 投稿先 channel は `settings.channelId` で指定します。
 
 ### webChatServer.js
 
-WebUI 会話用の Express server です。常駐 bot ではなく、使う時だけ起動する会話アプリの backend として扱います。`api.js` は互換用の起動 shim です。
+WebUI 会話用の Express server です。常駐 bot ではなく、使う時だけ起動する会話アプリの backend として扱います。`functions/api.js` は互換用の起動 shim です。
 
 `npm run web` で backend と frontend をまとめて起動します。
 
@@ -101,7 +101,7 @@ API:
 ## 定期投稿フロー
 
 ```txt
-xBot.js / discordBot.js
+functions/xBot.js / functions/discordBot.js
   -> checkScheduler()
   -> getEnvironmentState()
   -> utteranceQueue.enqueue()
@@ -291,7 +291,7 @@ X_ACCESS_TOKEN_SECRET=
 
 ### Discord
 
-`discordBot.js` が channel を fetch し、`functions/postTarget.js` 経由で送信します。
+`functions/discordBot.js` が channel を fetch し、`functions/postTarget.js` 経由で送信します。
 `DISCORD_TOKEN` と `settings.channelId` が必要です。
 
 ## 記憶と履歴
