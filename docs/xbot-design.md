@@ -68,10 +68,10 @@ X 版では Discord Client、channel fetch、Discord token は不要にする。
 
 ## Entry Point
 
-`bot.js` は `BOT_TARGET` で起動対象を選ぶ。
+`bot.js` は `postTargets` で起動対象を選ぶ。
 
 ```js
-const target = process.env.BOT_TARGET || "x";
+const target = resolveBotTarget(loadSettings());
 
 if (target === "discord") {
   require("./functions/discordBot");
@@ -80,14 +80,15 @@ if (target === "discord") {
 }
 ```
 
-移行中は次のように切り替えられる。
+`config/settings.local.json` で次のように切り替えられる。
 
-```bash
-BOT_TARGET=discord node bot.js
-BOT_TARGET=x node bot.js
+```json
+{
+  "postTargets": ["discord"]
+}
 ```
 
-X 投稿が安定したら、Discord 側を削除してもよい。
+X 投稿が安定したら、`postTargets` を `["x"]` に戻す。
 
 ## X Posting Modules
 
@@ -193,8 +194,6 @@ Access Token / Access Token Secret は投稿する X アカウントの user con
 `.env` に保存する。
 
 ```env
-BOT_TARGET=x
-
 X_API_KEY=取得したAPI Key
 X_API_KEY_SECRET=取得したAPI Key Secret
 X_ACCESS_TOKEN=取得したAccess Token
@@ -221,7 +220,6 @@ X_TOKEN_PATH=memory/x_token.json
 最初は実投稿せずに確認する。
 
 ```env
-BOT_TARGET=x
 ```
 
 ```json
@@ -271,8 +269,6 @@ dry-run が問題なければ実投稿に切り替える。
 `.env` に置く候補:
 
 ```env
-BOT_TARGET=x
-
 X_API_KEY=
 X_API_KEY_SECRET=
 X_ACCESS_TOKEN=
@@ -289,12 +285,13 @@ X_CALLBACK_URL=http://localhost:3000/x/callback
 X_TOKEN_PATH=memory/x_token.json
 ```
 
-Discord を残す場合:
+Discord を使う場合:
 
 ```env
-BOT_TARGET=discord
 DISCORD_TOKEN=
 ```
+
+`config/settings.local.json` で `postTargets` を `["discord"]` にする。
 
 ## Settings
 
@@ -340,7 +337,7 @@ memory/x_post_state.json
 
 - `bot.js` を entry point にする。
 - 既存の Discord 実装を `functions/discordBot.js` へ移す。
-- `BOT_TARGET=discord` で旧動作を維持する。
+- `postTargets: ["discord"]` で Discord 動作を維持する。
 
 ### Step 2: Add X Bot Skeleton
 
@@ -363,7 +360,7 @@ memory/x_post_state.json
 
 ### Step 5: Enable Production Posting
 
-- `BOT_TARGET=x`
+- `postTargets` を `["x"]` にする。
 - `xDryRun=false`
 - 定時投稿を X へ送る。
 

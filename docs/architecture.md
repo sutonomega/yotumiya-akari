@@ -60,17 +60,18 @@ frontend/
 
 ### bot.js
 
-`BOT_TARGET` で投稿先 bot を選びます。
-未指定の場合は X bot が起動します。
+`config/settings.json` / `config/settings.local.json` の `postTargets` で投稿先 bot を選びます。
+`postTargets` が `["discord"]` の場合は Discord bot、それ以外は X bot が起動します。
 
-```bash
-npm run start:x
-npm run start:discord
+```json
+{
+  "postTargets": ["discord"]
+}
 ```
 
 内部的には次の分岐です。
 
-- `BOT_TARGET=discord`: `functions/discordBot.js`
+- `postTargets: ["discord"]`: `functions/discordBot.js`
 - それ以外: `functions/xBot.js`
 
 ### functions/xBot.js
