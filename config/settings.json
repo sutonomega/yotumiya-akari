@@ -57,6 +57,7 @@
   "enableBaseReply": true,
   "enablePersonalizeReply": false,
   "timeSignalRepairMaxAttempts": 1,
+  "enableNightlyProcess": false,
 
   "enableGoodExamples": true,
   "enableBadExamples": true,
