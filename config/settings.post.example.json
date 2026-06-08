@@ -1,0 +1,17 @@
+{
+  "description": "投稿確認用の settings.local.json 例。時報投稿だけを動かし、WebUI会話の履歴・例文を投稿生成へ混ぜない。",
+  "postTargets": [
+    "discord"
+  ],
+  "xDryRun": true,
+  "postScheduleMode": "hourly",
+  "postScheduleMinute": 0,
+  "generationMode": "post",
+  "enableWebChatPrompt": false,
+  "enableRecentChatHistory": false,
+  "enableGoodExamples": false,
+  "enableBadExamples": false,
+  "enableLongMemory": false,
+  "enableSummary": false,
+  "enableLongMemoryGeneration": false
+}

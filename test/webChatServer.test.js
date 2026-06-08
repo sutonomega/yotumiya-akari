@@ -6,31 +6,34 @@ const {
   createWebChatApp,
 } = require("../webChatServer");
 
-test("buildWebChatSettings enables web chat specific options without mutating base settings", () => {
+test("buildWebChatSettings returns settings without derived overrides", () => {
   const base = {
-    enableAnalyzeInput: false,
-    enableCurrentState: false,
-    enableWebChatAnalyzeInput: true,
-    enableWebChatCurrentState: true,
+    generationMode: "reply",
+    enableAnalyzeInput: true,
+    enableCurrentState: true,
+    enableGoodExamples: false,
+    enableBadExamples: false,
   };
 
   const settings = buildWebChatSettings(base);
 
+  assert.equal(settings, base);
   assert.equal(settings.enableAnalyzeInput, true);
   assert.equal(settings.enableCurrentState, true);
-  assert.equal(base.enableAnalyzeInput, false);
-  assert.equal(base.enableCurrentState, false);
+  assert.equal(settings.enableGoodExamples, false);
+  assert.equal(settings.enableBadExamples, false);
 });
 
-test("web chat app passes currentState and web chat settings to generateMessage", async (t) => {
+test("web chat app passes currentState and settings to generateMessage", async (t) => {
   const calls = [];
   const app = createWebChatApp({
     settings: {
       memoryDir: "memory",
-      enableAnalyzeInput: false,
-      enableCurrentState: false,
-      enableWebChatAnalyzeInput: true,
-      enableWebChatCurrentState: true,
+      generationMode: "reply",
+      enableAnalyzeInput: true,
+      enableCurrentState: true,
+      enableGoodExamples: false,
+      enableBadExamples: false,
     },
     getState: async ({ settings, userMessage }) => {
       calls.push({ type: "state", settings, userMessage });
@@ -70,5 +73,7 @@ test("web chat app passes currentState and web chat settings to generateMessage"
     marker: "state",
   });
   assert.equal(calls.find((call) => call.type === "generate").request.settingsOverride.enableCurrentState, true);
+  assert.equal(calls.find((call) => call.type === "generate").request.settingsOverride.enableGoodExamples, false);
+  assert.equal(calls.find((call) => call.type === "generate").request.settingsOverride.enableBadExamples, false);
   assert.equal(calls.find((call) => call.type === "history").history.aiMessage, "返答です。");
 });

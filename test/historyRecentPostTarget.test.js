@@ -142,6 +142,24 @@ test("parseHistory skips empty lines and empty speaker content", () => {
   assert.deepEqual(messages, [{ role: "user", content: "hello" }]);
 });
 
+test("parseHistory reads saved two-line chat history format", () => {
+  const messages = parseHistory(
+    { userName: "U", aiName: "A", recentChatLines: 10 },
+    [
+      "U:",
+      "バグつらい",
+      "",
+      "A:",
+      "少し休もう。",
+    ].join("\n"),
+  );
+
+  assert.deepEqual(messages, [
+    { role: "user", content: "バグつらい" },
+    { role: "assistant", content: "少し休もう。" },
+  ]);
+});
+
 test("parseHistory removes repeated assistant messages", () => {
   const messages = parseHistory(
     { userName: "U", aiName: "A", recentChatLines: 10 },

@@ -10,12 +10,13 @@ const processHistory = require("../functions/processHistory");
 // settings
 // =========================
 
-const settings = JSON.parse(
+const baseSettings = JSON.parse(
   fs.readFileSync(
     path.join(__dirname, "..", "config", "settings.json"),
     "utf-8",
   ),
 );
+const settings = baseSettings;
 
 // =========================
 // 質問リスト読み込み
@@ -107,9 +108,7 @@ async function runEval() {
     // =========================
 
     const aiMessage = await generateMessage({
-      settings,
-
-      mode: "reply",
+      settingsOverride: settings,
 
       userMessage,
     });
@@ -124,8 +123,6 @@ async function runEval() {
 
     await processHistory({
       settings,
-
-      mode: "reply",
 
       userMessage,
 

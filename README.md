@@ -99,18 +99,59 @@ DISCORD_TOKEN=xxxxxxxx
 
 ---
 
-# settings.local.json
+# settings
 
-環境ごとの差分設定は
-settings.local.json で上書きできます。
+設定は config/settings.json を基準にします。
+環境ごとの差分は config/settings.local.json で上書きします。
 
-このファイルは Git 管理対象外です。
+settings.local.json は Git 管理対象外です。
+秘密情報や運用環境ごとの差分はここに置きます。
 
-例:
+コード側で投稿用・会話用の設定を再生成しません。
+実行時の挙動は settings の値だけで決まります。
+
+## generationMode
+
+生成の用途は generationMode で指定します。
+
+- post: X / Discord への時報投稿
+- reply: WebUI 会話
+
+投稿運用では、会話履歴やWebUI用プロンプトを投稿生成へ混ぜないため、投稿用の設定を使います。
+WebUI会話では、会話履歴や会話例を使う設定にできます。
+
+## 設定例
+
+用途別の例は config/ に分けています。
+
+- config/settings.post.example.json: 投稿用
+- config/settings.webchat.example.json: WebUI会話用
+- config/settings.example.json: 共通設定の例
+
+投稿用で重要な項目:
 
 ```json
 {
-  "enableVoice": true
+  "generationMode": "post",
+  "enableWebChatPrompt": false,
+  "enableRecentChatHistory": false,
+  "enableGoodExamples": false,
+  "enableBadExamples": false,
+  "enableLongMemory": false
+}
+```
+
+WebUI会話用で重要な項目:
+
+```json
+{
+  "generationMode": "reply",
+  "enableWebChatPrompt": true,
+  "enableRecentChatHistory": true,
+  "enableGoodExamples": true,
+  "enableBadExamples": true,
+  "enableAnalyzeInput": true,
+  "enableCurrentState": true
 }
 ```
 
@@ -140,6 +181,7 @@ settings.local.json で上書きできます。
 
 # ドキュメント
 
+- [実装仕様書](docs/implementation-spec.md)
 - [現在の設計](docs/architecture.md)
 - [今後やること](docs/roadmap.md)
 - [大きな変更履歴](docs/changelog.md)
