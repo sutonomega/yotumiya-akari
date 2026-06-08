@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { repetitionPenalty } = require("./recentPhrases");
+const { loadRecentPhrases, repetitionPenalty } = require("./recentPhrases");
 const { readState, writeState } = require("./stateStore");
 
 const DEFAULT_SAFETY_CONFIG = {
@@ -12,6 +12,9 @@ const DEFAULT_SAFETY_CONFIG = {
   unknownWeatherTerms: [],
   timeBands: {},
   defaultFallback: "",
+  recentObjectTerms: [],
+  recentObjectWindow: 8,
+  recentObjectThreshold: 2,
 };
 
 let cachedSafetyConfig = null;
@@ -82,7 +85,32 @@ function isWeatherUnknown(currentState = {}) {
   return !summary || summary === "unknown";
 }
 
-function validateTimeSignalText(text, currentState = {}, config = loadSafetyConfig()) {
+function recentObjectReasons(body, config, settings) {
+  if (!settings || !Array.isArray(config.recentObjectTerms)) {
+    return [];
+  }
+
+  const terms = config.recentObjectTerms.filter((term) => body.includes(term));
+
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const recent = loadRecentPhrases(settings).phrases || [];
+  const windowSize = Math.max(1, Number(config.recentObjectWindow || 8));
+  const threshold = Math.max(1, Number(config.recentObjectThreshold || 2));
+  const recentWindow = recent.slice(-windowSize);
+
+  return terms
+    .filter((term) => recentWindow.filter((phrase) => phrase.includes(term)).length >= threshold)
+    .map((term) => `recent_object:${term}`);
+}
+
+function hasRecentObjectBias(text, config, settings) {
+  return recentObjectReasons(String(text || ""), config, settings).length > 0;
+}
+
+function validateTimeSignalText(text, currentState = {}, config = loadSafetyConfig(), settings = null) {
   const body = String(text || "").trim();
   const reasons = [];
   const band = timeBandConfig(config, currentState);
@@ -128,6 +156,8 @@ function validateTimeSignalText(text, currentState = {}, config = loadSafetyConf
     reasons.push("no_concrete_object");
   }
 
+  reasons.push(...recentObjectReasons(body, config, settings));
+
   return {
     safe: reasons.length === 0,
     reasons,
@@ -142,7 +172,9 @@ function pickFallback(currentState = {}, config = loadSafetyConfig(), settings =
   }
 
   const available = settings
-    ? candidates.filter((candidate) => repetitionPenalty(settings, candidate) === 0)
+    ? candidates.filter(
+        (candidate) => repetitionPenalty(settings, candidate) === 0 && !hasRecentObjectBias(candidate, config, settings),
+      )
     : candidates;
   const pool = available.length > 0 ? available : candidates;
 
@@ -188,7 +220,7 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
   const maxAttempts = Math.max(0, Number(settings.timeSignalRepairMaxAttempts || 0));
   let current = String(message || "").trim();
   let validation = applyRecentPhraseValidation(
-    validateTimeSignalText(current, currentState, config),
+    validateTimeSignalText(current, currentState, config, settings),
     settings,
     current,
   );
@@ -201,7 +233,7 @@ async function repairTimeSignalPost({ settings, currentState, message, regenerat
     try {
       current = String(await regenerate({ previousText: current, reasons: validation.reasons })).trim();
       validation = applyRecentPhraseValidation(
-        validateTimeSignalText(current, currentState, config),
+        validateTimeSignalText(current, currentState, config, settings),
         settings,
         current,
       );
@@ -249,6 +281,7 @@ module.exports = {
   pickFallback,
   repairTimeSignalPost,
   isWeatherUnknown,
+  recentObjectReasons,
   applyRecentPhraseValidation,
   timeBand,
   validateTimeSignalText,

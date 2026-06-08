@@ -19,6 +19,9 @@ const safetyConfig = {
   fallbackLogLimit: 10,
   commonDangerTerms: ["Analysis", "静けさ"],
   concreteTerms: ["カーテン", "机", "カップ", "台所"],
+  recentObjectTerms: ["机", "カップ", "台所", "皿", "洗面台", "マグカップ"],
+  recentObjectWindow: 8,
+  recentObjectThreshold: 2,
   unknownWeatherTerms: ["雨", "晴れ", "曇り", "雪", "風", "夜風", "揺れ", "揺れる"],
   defaultFallback: "机の上に、カップが置いてある。",
   timeBands: {
@@ -47,6 +50,9 @@ test("safety config reader supports injected missing file and custom content", (
       unknownWeatherTerms: [],
       timeBands: {},
       defaultFallback: "",
+      recentObjectTerms: [],
+      recentObjectWindow: 8,
+      recentObjectThreshold: 2,
     },
   );
 
@@ -441,4 +447,88 @@ test("validateTimeSignalText rejects malformed quiet expressions", () => {
 
   assert.equal(result.safe, false);
   assert.ok(result.reasons.includes("danger:静けし"));
+});
+
+
+test("validateTimeSignalText rejects overused concrete objects from recent history", (t) => {
+  const tempBaseDir = path.join(process.cwd(), "tmp");
+  fs.mkdirSync(tempBaseDir, { recursive: true });
+  const tempDir = fs.mkdtempSync(path.join(tempBaseDir, "test-recent-object-"));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const settings = {
+    memoryDir: path.relative(process.cwd(), tempDir),
+    aiName: "夜宮 灯",
+  };
+
+  saveRecentPhrases(settings, "机の上にマグカップを置き、朝の支度を始める。", 10);
+  saveRecentPhrases(settings, "机の上の飲み物が、少しぬるくなっている。", 10);
+
+  const result = validateTimeSignalText(
+    "机の端にノートを置いて、朝の支度を始める。",
+    { hour: 9, timeText: "morning" },
+    {
+      ...safetyConfig,
+      concreteTerms: [...safetyConfig.concreteTerms, "ノート"],
+    },
+    settings,
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("recent_object:机"));
+});
+
+test("pickFallback avoids candidates with recently overused objects", (t) => {
+  const tempBaseDir = path.join(process.cwd(), "tmp");
+  fs.mkdirSync(tempBaseDir, { recursive: true });
+  const tempDir = fs.mkdtempSync(path.join(tempBaseDir, "test-fallback-object-"));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const settings = {
+    memoryDir: path.relative(process.cwd(), tempDir),
+    aiName: "夜宮 灯",
+  };
+
+  saveRecentPhrases(settings, "机の上にマグカップを置き、朝の支度を始める。", 10);
+  saveRecentPhrases(settings, "机の上の飲み物が、少しぬるくなっている。", 10);
+
+  assert.equal(
+    pickFallback(
+      { hour: 8, timeText: "morning" },
+      {
+        ...safetyConfig,
+        concreteTerms: [...safetyConfig.concreteTerms, "玄関", "靴"],
+        timeBands: {
+          morning: {
+            fallback: [
+              "机の上にマグカップを置き、朝の支度を始める。",
+              "玄関に靴をそろえて、上着を手に取る。",
+            ],
+            blocked: [],
+          },
+        },
+      },
+      settings,
+    ),
+    "玄関に靴をそろえて、上着を手に取る。",
+  );
+});
+
+test("validateTimeSignalText rejects lunch preparation in evening", () => {
+  const result = validateTimeSignalText(
+    "昼の支度を終えて、机に飲み物を置く。",
+    { hour: 17, timeText: "evening" },
+    {
+      ...safetyConfig,
+      concreteTerms: [...safetyConfig.concreteTerms, "飲み物"],
+      timeBands: {
+        ...safetyConfig.timeBands,
+        evening: {
+          fallback: ["玄関に靴を置き、上着を椅子に掛ける。"],
+          blocked: ["昼の支度"],
+        },
+      },
+    },
+  );
+
+  assert.equal(result.safe, false);
+  assert.ok(result.reasons.includes("time_mismatch:昼の支度"));
 });
