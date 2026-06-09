@@ -115,11 +115,37 @@ function shouldKeepAssistantMessage(content, previousAssistantMessages) {
   return true;
 }
 
+function pushHistoryMessage({ messages, assistantMessages, role, content }) {
+  const trimmed = String(content || "").trim();
+
+  if (!trimmed) {
+    return;
+  }
+
+  if (role === "assistant") {
+    if (!shouldKeepAssistantMessage(trimmed, assistantMessages)) {
+      return;
+    }
+
+    assistantMessages.push(trimmed);
+  }
+
+  messages.push({
+    role,
+    content: trimmed,
+  });
+}
+
 function parseHistory(settings, historyText) {
   try {
+    if (!settings || !settings.userName || !settings.aiName) {
+      return [];
+    }
+
     const lines = String(historyText || "").split("\n");
     const messages = [];
     const assistantMessages = [];
+    let pendingRole = null;
 
     for (const rawLine of lines) {
       const line = rawLine.trim();
@@ -139,14 +165,18 @@ function parseHistory(settings, historyText) {
       if (line.startsWith(`${settings.userName}:`)) {
         const content = line.replace(`${settings.userName}:`, "").trim();
 
-        if (!content) {
-          continue;
+        if (content) {
+          pushHistoryMessage({
+            messages,
+            assistantMessages,
+            role: "user",
+            content,
+          });
+          pendingRole = null;
+        } else {
+          pendingRole = "user";
         }
 
-        messages.push({
-          role: "user",
-          content,
-        });
         continue;
       }
 
@@ -157,15 +187,29 @@ function parseHistory(settings, historyText) {
       if (line.startsWith(`${settings.aiName}:`)) {
         const content = line.replace(`${settings.aiName}:`, "").trim();
 
-        if (!shouldKeepAssistantMessage(content, assistantMessages)) {
-          continue;
+        if (content) {
+          pushHistoryMessage({
+            messages,
+            assistantMessages,
+            role: "assistant",
+            content,
+          });
+          pendingRole = null;
+        } else {
+          pendingRole = "assistant";
         }
 
-        assistantMessages.push(content);
-        messages.push({
-          role: "assistant",
-          content,
+        continue;
+      }
+
+      if (pendingRole) {
+        pushHistoryMessage({
+          messages,
+          assistantMessages,
+          role: pendingRole,
+          content: line,
         });
+        pendingRole = null;
       }
     }
 

@@ -63,8 +63,8 @@ async function main() {
     );
 
     const message = await generateMessage({
-      mode: "post",
       currentHour: hour,
+      settingsOverride: settings,
     });
 
     console.log(message);

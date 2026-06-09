@@ -50,10 +50,28 @@
   "dailyPostHours": [6, 12, 18, 22],
 
   "enableVoice": false,
+
+  "calendarPrivateKeywords": ["private:"],
+
+  "enableAnalyzeInput": false,
+  "enableBaseReply": true,
+  "enablePersonalizeReply": false,
   "timeSignalRepairMaxAttempts": 1,
   "enableNightlyProcess": false,
   "webChatPort": 3000,
   "webChatFrontendPort": 5173,
-  "enableWebChatAnalyzeInput": true,
-  "enableWebChatCurrentState": true
+  "enableGoodExamples": true,
+  "enableBadExamples": true,
+  "enableAiProfile": false,
+  "enableUserProfile": false,
+  "enableConversationRules": false,
+  "enableLongMemory": false,
+  "enableCurrentState": false,
+  "enableCalendarPrompt": false,
+
+  "enableSummary": false,
+  "enableLongMemoryGeneration": false,
+  "generationMode": "reply",
+  "enableWebChatPrompt": true,
+  "enableRecentChatHistory": true
 }

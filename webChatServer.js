@@ -10,13 +10,7 @@ const loadSettings = require("./functions/loadSettings");
 const utteranceQueue = require("./functions/utteranceQueue");
 
 function buildWebChatSettings(settings) {
-  return {
-    ...settings,
-    enableAnalyzeInput:
-      settings.enableWebChatAnalyzeInput ?? settings.enableAnalyzeInput,
-    enableCurrentState:
-      settings.enableWebChatCurrentState ?? settings.enableCurrentState,
-  };
+  return settings;
 }
 
 function createWebChatApp({
@@ -51,7 +45,6 @@ function createWebChatApp({
 
       const reply = await queue.enqueue("web-chat:reply", () =>
         generate({
-          mode: "reply",
           userMessage: message,
           currentState,
           settingsOverride: webChatSettings,
@@ -60,7 +53,6 @@ function createWebChatApp({
 
       await processChatHistory({
         settings: webChatSettings,
-        mode: "reply",
         userMessage: message,
         aiMessage: reply,
       });

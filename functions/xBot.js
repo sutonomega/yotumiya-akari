@@ -55,8 +55,6 @@ setInterval(
 
       const message = await utteranceQueue.enqueue("scheduler:post", () =>
         generateMessage({
-          mode: event.mode,
-
           currentState,
 
           eventPrompt: event.prompt,

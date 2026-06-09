@@ -35,7 +35,6 @@ async function checkScheduler() {
   });
 
   return {
-    mode: postSlot.mode,
     kind: postSlot.kind,
     prompt: postSlot.prompt,
   };

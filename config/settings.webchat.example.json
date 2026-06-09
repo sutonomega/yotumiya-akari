@@ -1,0 +1,12 @@
+{
+  "description": "WebUI会話用の settings.local.json 例。会話品質確認時に使う。投稿とは同時起動しない想定。",
+  "generationMode": "reply",
+  "enableWebChatPrompt": true,
+  "enableRecentChatHistory": true,
+  "enableGoodExamples": true,
+  "enableBadExamples": true,
+  "enableCurrentState": true,
+  "enableAnalyzeInput": true,
+  "enableSummary": false,
+  "enableLongMemoryGeneration": false
+}

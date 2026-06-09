@@ -51,7 +51,6 @@ function getLifeRhythmSlot(currentState = {}) {
 
   if (hour === 6) {
     return {
-      mode: "post",
       kind: "good_morning",
       timeText,
       prompt: "",
@@ -60,7 +59,6 @@ function getLifeRhythmSlot(currentState = {}) {
 
   if (hour === 0 || hour === 22 || hour === 23) {
     return {
-      mode: "post",
       kind: "good_night",
       timeText,
       prompt: "",
@@ -68,7 +66,6 @@ function getLifeRhythmSlot(currentState = {}) {
   }
 
   return {
-    mode: "post",
     kind: timeText + "_time_signal",
     timeText,
     prompt: "",

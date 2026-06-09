@@ -59,7 +59,6 @@ test("post fires only on configured minute and allowed hour", () => {
     schedulerData: {},
   });
 
-  assert.equal(event.mode, "post");
   assert.equal(event.kind, "daytime_time_signal");
   assert.equal(event.currentSlot, "daily4:12:10:daytime_time_signal");
 });
@@ -76,7 +75,6 @@ test("same currentSlot is treated as duplicate", () => {
 
 test("life rhythm slot reuses currentState timeText", () => {
   assert.deepEqual(getLifeRhythmSlot({ hour: 18, timeText: "evening" }), {
-    mode: "post",
     kind: "evening_time_signal",
     timeText: "evening",
     prompt: "",

@@ -17,7 +17,7 @@ function saveHistory({
   // 通常会話のみ保存
   // =========================
 
-  if (mode !== "reply") {
+  if ((settings.generationMode || mode) !== "reply") {
     return;
   }
 

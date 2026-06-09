@@ -10,6 +10,13 @@ const { runResponsePipeline } = require("./responsePipeline");
 const { composeStatePrompt } = require("./statePrompt");
 const { formatTimeText } = require("./timeFormatter");
 const { repairTimeSignalPost } = require("./timeSignalSafety");
+function isPostMode(settings) {
+  return settings.generationMode === "post";
+}
+
+function isReplyMode(settings) {
+  return settings.generationMode === "reply";
+}
 
 function loadText(...paths) {
   const filePath = path.join(process.cwd(), ...paths);
@@ -59,7 +66,7 @@ function getTimeDescription(currentState) {
   return prompts.default || "";
 }
 
-function buildSystemPrompt(settings, currentState, mode = "reply") {
+function buildSystemPrompt(settings, currentState) {
   const goodExamples = loadText(
     settings.memoryDir,
     "feedback",
@@ -78,7 +85,7 @@ function buildSystemPrompt(settings, currentState, mode = "reply") {
   );
   const longMemory = loadText(settings.memoryDir, "long_memory.txt");
   const systemPrompt = loadText("prompts", "system.txt");
-  const webChatPrompt = mode === "reply" ? loadText("prompts", "web_chat.txt") : "";
+  const webChatPrompt = settings.enableWebChatPrompt ? loadText("prompts", "web_chat.txt") : "";
 
   return [
     systemPrompt,
@@ -102,15 +109,54 @@ function buildSystemPrompt(settings, currentState, mode = "reply") {
     .join("\n\n");
 }
 
+function buildMessages({
+  settings,
+  state,
+  recentHistory = "",
+  userMessage = "",
+  eventPrompt = "",
+}) {
+  const messages = [
+    {
+      role: "system",
+      content: buildSystemPrompt(settings, state),
+    },
+  ];
+
+  if (settings.enableRecentChatHistory !== false) {
+    messages.push(...parseHistory(settings, recentHistory));
+  }
+
+  if (isReplyMode(settings)) {
+    messages.push({
+      role: "user",
+      content: userMessage,
+    });
+    return messages;
+  }
+
+  const timeSignalPrompt = loadText("prompts", "time_signal.txt");
+  messages.push({
+    role: "user",
+    content: `${eventPrompt || getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
+  });
+
+  return messages;
+}
+
 async function generateMessage({
-  mode = "reply",
+  mode = null,
   userMessage = "",
   currentHour = null,
   currentState = null,
   eventPrompt = "",
   settingsOverride = null,
 } = {}) {
-  const settings = settingsOverride || loadSettings();
+  const baseSettings = settingsOverride || loadSettings();
+  const settings = {
+    ...baseSettings,
+    generationMode: baseSettings.generationMode || mode || "reply",
+  };
   const state =
     currentState ||
     (await getEnvironmentState({
@@ -131,42 +177,29 @@ async function generateMessage({
       .slice(-settings.recentChatLines)
       .join("\n");
 
-    const messages = [
-      {
-        role: "system",
-        content: buildSystemPrompt(settings, state),
-      },
-      ...parseHistory(settings, recentHistory),
-    ];
-
-    if (mode === "reply") {
-      messages.push({
-        role: "user",
-        content: userMessage,
-      });
-    } else {
-      const timeSignalPrompt = loadText("prompts", "time_signal.txt");
-      messages.push({
-        role: "user",
-        content: `${eventPrompt || getTimeDescription(state)}\n\n${state.calendar.prompt}\n\n${timeSignalPrompt}`,
-      });
-    }
+    const messages = buildMessages({
+      settings,
+      state,
+      recentHistory,
+      userMessage,
+      eventPrompt,
+    });
 
     const pipeline = await runResponsePipeline({
       settings,
       userMessage:
-        mode === "reply"
+        isReplyMode(settings)
           ? userMessage
           : eventPrompt || getTimeDescription(state),
       currentState: state,
       messages,
-      mode,
+      mode: settings.generationMode,
       callModel: (nextMessages) => llm.chat(nextMessages),
     });
     console.log("[BEFORE SUPPRESS]", pipeline.finalReply);
     let message = suppressRecentPhrases(settings, pipeline.finalReply);
     console.log("[AFTER SUPPRESS]", message);
-    if (mode === "post") {
+    if (isPostMode(settings)) {
       const repairPrompt = loadText("prompts", "time_signal_repair.txt");
       const repair = await repairTimeSignalPost({
         settings,
@@ -193,7 +226,7 @@ async function generateMessage({
       message = repair.message;
     }
 
-    if (mode === "post") {
+    if (isPostMode(settings)) {
       message = `${formatTimeText(state.hour)}\n${message}`;
     }
 
@@ -211,4 +244,5 @@ async function generateMessage({
 }
 
 module.exports = generateMessage;
+module.exports.buildMessages = buildMessages;
 module.exports.buildSystemPrompt = buildSystemPrompt;

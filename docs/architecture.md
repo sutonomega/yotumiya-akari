@@ -7,7 +7,7 @@ Yorumiya AI は、ローカル LLM を中心にした人格 AI / 時報 bot で�
 
 設計上の中心は次の 3 つです。
 
-- 状態収集: 現在時刻、気分、会話統計、天気、カレンダーをまとめる。
+- 状態収集: 現在時刻、会話統計、カレンダーなどをまとめる。mood と weather は状態枠のみあり、現状は自動更新・外部取得を運用していない。
 - 発話生成: prompt、記憶、履歴、状態を組み合わせて LLM へ渡す。
 - 投稿先分離: X / Discord / API などの入口は分け、生成処理は共通化する。
 
@@ -138,7 +138,7 @@ frontend
   -> POST /api/chat
   -> getEnvironmentState({ userMessage })
   -> utteranceQueue.enqueue()
-  -> generateMessage({ mode: "reply", userMessage, currentState, settingsOverride })
+  -> generateMessage({ userMessage, currentState, settingsOverride })
   -> processHistory()
   -> response json
 ```
@@ -146,7 +146,7 @@ frontend
 `processHistory()` は会話履歴を保存し、設定が有効な場合だけ summary、long memory、履歴圧縮を実行します。
 現在の `settings.json` では summary と long memory generation は無効です。
 
-WebUI 会話では `getEnvironmentState()` で作った `currentState` をそのまま `generateMessage()` に渡します。`enableWebChatAnalyzeInput` と `enableWebChatCurrentState` で、WebUI 会話だけ分析・状態プロンプトを有効化できます。
+WebUI 会話では `getEnvironmentState()` で作った `currentState` をそのまま `generateMessage()` に渡します。会話用の `settings.local.json` では `generationMode: "reply"`、`enableAnalyzeInput`、`enableCurrentState`、`enableWebChatPrompt`、`enableRecentChatHistory` を直接設定します。
 
 ## 状態収集
 
@@ -155,7 +155,7 @@ WebUI 会話では `getEnvironmentState()` で作った `currentState` をその
 時刻と runtime state をまとめます。
 
 - `hour`, `minute`, `timeText`
-- `memory/mood.json`
+- `memory/mood.json`。状態枠のみ。現状は自動更新を運用していない。
 - `memory/scheduler.json`
 - `memory/talk_stats.json`
 - 最終会話からの経過時間
@@ -164,7 +164,7 @@ WebUI 会話では `getEnvironmentState()` で作った `currentState` をその
 
 `getCurrentState()` に次を加えた、発話生成用の統合状態を返します。
 
-- weather: `memory/weather.json` または default weather。
+- weather: `memory/weather.json` または default weather。現状は外部取得を運用していない。
 - calendar: `calendarState.js` の結果。
 - conversation: 入力文のカテゴリと会話状態。
 
